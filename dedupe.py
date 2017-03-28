@@ -4,6 +4,7 @@ import datetime
 import time
 import requests
 import ujson
+import sys
 from io import StringIO
 from datetime import timedelta
 from time import sleep
@@ -21,8 +22,11 @@ def run(args):
             qe = time.time()
             docs = 0
             removed = 0
-            if "aggregations" in resp:
+            if isinstance(resp, dict) and ("aggregations" in resp):
                 docs = len(resp["aggregations"]["duplicateCount"]["buckets"])
+            else:
+                print("ERROR: Unexpected response {}".format(resp))
+                sys.exit()
             print("ES query took {}, retrieved {} unique docs".format(timedelta(seconds=(qe - qs)),docs))
             if docs > 0:
                 removed = remove_duplicates(resp, index, args)
