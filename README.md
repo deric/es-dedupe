@@ -15,6 +15,10 @@ will try to find duplicated documents in index called `nginx_logs-2017.03.17` wh
  * `-m` number of duplicated documents with same unique field value
  * `-t` document type in ES
 
+WARNING: Running huge bulk operations on ES cluster might influence performance of your cluster or even crash some nodes if heap
+is not large enough. Increment `-b` and `-m` parameters with caution! ES returns at most `b * m` documents, eventually you might hit
+maximum POST request size with bulk requests.
+
 ## Performance
 
 Most time is spent on ES queries, choose `--batch` size wisely!
