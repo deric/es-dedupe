@@ -219,7 +219,7 @@ def check_docs(file, args):
             sum += v
         print("Queried for {} documents, retrieved status of {} ({:.2f}%).".format(total, sum, sum/total*100))
         if sum < total:
-            print("WARNING: Check your ES configuration!")
+            print("WARNING: Check your ES status and configuration!")
 
     else:
         print("{} is not a file".format(file))
@@ -255,8 +255,11 @@ def msearch(query, args, stats, docs):
                             num = doc['hits']['total']
                             curr[num] += 1
                             # a doc to remain in ES
-                            remain = doc['hits']['hits'][0]
-                            log_done(to_log, remain['_source'][args.field], remain['_index'], remain['_type'], remain['_id'])
+                            if 'hits' in doc['hits'] and len(doc['hits']['hits']) > 0:
+                                remain = doc['hits']['hits'][0]
+                                log_done(to_log, remain['_source'][args.field], remain['_index'], remain['_type'], remain['_id'])
+                            else:
+                                print("Unexpeced doc: {}".format(doc['hits']))
                             if num > 1:
                                 j = 0
                                 for dupl in doc['hits']['hits']:
