@@ -144,6 +144,7 @@ def log_done(buf, doc, index, type, id):
     buf.write(type)
     buf.write('/')
     buf.write(id)
+    buf.write('\n')
 
 # returns number of deleted items
 def bulk_remove(buf, args):
@@ -247,7 +248,7 @@ def msearch(query, args, stats, docs):
                             curr[num] += 1
                             # a doc to remain in ES
                             remain = doc['hits']['hits'][0]
-                            log_done(to_log, remain['_source'][args.field], dupl['_index'], dupl['_type'], dupl['_id'])
+                            log_done(to_log, remain['_source'][args.field], remain['_index'], remain['_type'], remain['_id'])
                             if num > 1:
                                 j = 0
                                 for dupl in doc['hits']['hits']:
@@ -280,9 +281,9 @@ def msearch(query, args, stats, docs):
                 else:
                     bulk_remove(to_del, args)
                     # log docs as done
-                    with open(args.log_done, mode='a', encoding='utf-8') as f:
-                        f.write(to_log)
-                    to_log.close()
+            with open(args.log_done, mode='a', encoding='utf-8') as f:
+                f.write(to_log.getvalue())
+            to_log.close()
             break
         else:
             print("failed to execute search query: #{0}".format(resp.text))
