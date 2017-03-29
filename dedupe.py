@@ -98,8 +98,12 @@ def fetch(index, args):
 def remove_duplicates(json, index, args):
     docs = []
     ids = []
+    idx = index
+    if args.prefix:
+        idx = "{}-{}".format(args.prefix, idx)
+
     for bucket in json["aggregations"]["duplicateCount"]["buckets"]:
-        docs.append("{0}:{1}-{2}/{3}/{4}".format(bucket['key'], args.prefix, index, args.doc_type, bucket["duplicateDocuments"]["hits"]["hits"][0]["_id"]))
+        docs.append("{}:{}/{}/{}".format(bucket['key'], idx, args.doc_type, bucket["duplicateDocuments"]["hits"]["hits"][0]["_id"]))
         #print("bucket: {0}".format(bucket))
         i = 0
         for dupl in bucket["duplicateDocuments"]["hits"]["hits"]:
@@ -110,10 +114,6 @@ def remove_duplicates(json, index, args):
                     print("skipping doc {0}".format(dupl["_id"]))
             i += 1
     buf = StringIO()
-    idx = index
-    if args.prefix:
-        idx = "{}-{}".format(args.prefix, idx)
-
     for i in ids:
         delete_query(buf, idx, args.doc_type, i)
 
