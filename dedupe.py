@@ -11,16 +11,29 @@ from collections import defaultdict
 from datetime import timedelta
 from time import sleep
 
+def msg_using(prefix, index):
+    if prefix:
+        print('Using index {}-{}'.format(prefix, index))
+    else:
+        print('Using index {}'.format(index))
+
+def idx_name(args, index):
+    # when index prefix is defined
+    if args.prefix:
+        return "{}-{}".format(args.prefix, index)
+    return index
+
 def run(args):
     start = time.time()
-    print('Using index {0}-{1}'.format(args.prefix, args.index))
     total = 0
+    msg_using(args.prefix, args.index)
     tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y.%m.%d")
     index = args.index
     while (index != tomorrow):
         while True:
             qs = time.time()
-            resp = fetch(index, args)
+            idx = idx_name(args, index)
+            resp = fetch(idx, args)
             qe = time.time()
             docs = 0
             removed = 0
@@ -31,7 +44,7 @@ def run(args):
                 sys.exit()
             print("ES query took {}, retrieved {} unique docs".format(timedelta(seconds=(qe - qs)),docs))
             if docs > 0:
-                removed = remove_duplicates(resp, index, args)
+                removed = remove_duplicates(resp, idx, args)
                 be = time.time()
                 total += removed
                 print("Deleted {0} duplicates, in total {1}. Batch processed in {2}, running time {3}".format(removed, total, timedelta(seconds=(be - qe)),timedelta(seconds=(be - start))))
@@ -48,8 +61,10 @@ def run(args):
                 break # continue with next index
         if (not args.all):
             break # process only one index
+        if not args.prefix:
+            break
         index = inc_day(index)
-        print('Using index {0}-{1}'.format(args.prefix, index))
+        msg_using(args.prefix, index)
     end = time.time()
     print("== de-duplication process completed successfully. Took: {0}".format(timedelta(seconds=(end - start))))
 
@@ -68,7 +83,7 @@ def msearch_uri(args):
     return '{0}/_msearch/template'.format(es_uri(args))
 
 def search_uri(index, args):
-    return '{0}/{1}-{2}/_search'.format(es_uri(args), args.prefix, index)
+    return '{}/{}/_search'.format(es_uri(args), index)
 
 def fetch(index, args):
     uri = search_uri(index, args)
@@ -107,9 +122,6 @@ def remove_duplicates(json, index, args):
     docs = []
     ids = []
     idx = index
-    if args.prefix:
-        idx = "{}-{}".format(args.prefix, idx)
-
     for bucket in json["aggregations"]["duplicateCount"]["buckets"]:
         docs.append("{}:{}/{}/{}".format(bucket['key'], idx, args.doc_type, bucket["duplicateDocuments"]["hits"]["hits"][0]["_id"]))
         #print("bucket: {0}".format(bucket))
@@ -354,6 +366,7 @@ if __name__ == "__main__":
                         default=datetime.date.today().strftime("%Y.%m.%d"),
                         help="Elasticsearch index suffix", metavar="index")
     parser.add_argument("-p", "--prefix", dest="prefix",
+                        default="",
                         help="Elasticsearch index prefix", metavar="prefix")
     parser.add_argument("-P", "--port", dest="port",
                         default=9200, type=int,
