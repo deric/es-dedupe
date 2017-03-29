@@ -36,6 +36,14 @@ def run(args):
                 total += removed
                 print("Deleted {0} duplicates, in total {1}. Batch processed in {2}, running time {3}".format(removed, total, timedelta(seconds=(be - qe)),timedelta(seconds=(be - start))))
                 sleep(args.sleep) # avoid flooding ES
+            if os.path.isfile(args.log_agg):
+                if args.no_chck:
+                    print("Skipping ES consistency check.")
+                else:
+                    print("ES consistency check:")
+                    check_docs(args.log_agg, args)
+                    os.remove(args.log_agg)
+
             if removed == 0:
                 break # continue with next index
         if (not args.all):
@@ -121,7 +129,7 @@ def remove_duplicates(json, index, args):
     buf.close()
     if removed > 0:
         # log document IDs with their indexes
-        with open(args.docs_log, mode='a', encoding='utf-8') as f:
+        with open(args.log_agg, mode='a', encoding='utf-8') as f:
             f.write('\n'.join(docs))
             f.write('\n')
     return removed
@@ -348,7 +356,11 @@ if __name__ == "__main__":
                         action="store_true", dest="debug",
                         default=False,
                         help="enable debugging")
-    parser.add_argument("--log_agg", dest="docs_log",
+    parser.add_argument("--no-chck",
+                        action="store_true", dest="no_chck",
+                        default=False,
+                        help="Disable check & remove if duplicities found after with standard search query")
+    parser.add_argument("--log_agg", dest="log_agg",
                         default="/tmp/es_dedupe.log",
                         help="Logfile for partially deleted documents (documents found by aggregate queries)")
     parser.add_argument("--log_done", dest="log_done",

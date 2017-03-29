@@ -1,6 +1,9 @@
 # ES deduplicator
 
-A tool for removing duplicated documents that are grouped by some unique field (e.g. `--field Uuid`).
+A tool for removing duplicated documents that are grouped by some unique field (e.g. `--field Uuid`). Removal process consists of two phases:
+
+ # Aggregate query find documents that have same `field` value and at least 2 occurences. One copy of such document is left in ES all others are deleted via Bulk API. We wait for index update after each `DELETE` operatation. Processed documents are logged into `/tmp/es_dedupe.log`.
+ # Based on `/tmp/es_dedupe.log` logfile we query for each `field` value and DELETE document copies on other shards. Depending on number of nodes and shards in cluster there might be still document that aggregate query didn't return. In order to disable 2nd step use `--no-chck` flag.
 
 Usage:
 ```
