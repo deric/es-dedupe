@@ -19,6 +19,12 @@ WARNING: Running huge bulk operations on ES cluster might influence performance 
 is not large enough. Increment `-b` and `-m` parameters with caution! ES returns at most `b * m` documents, eventually you might hit
 maximum POST request size with bulk requests.
 
+A log file containing documents with unique fields is written into `/tmp/es_dedupe.log`.
+
+By design ES aggregate queries are not necessarily precise. Depending on your cluster setup, some documents won't be deleted due to
+inaccurate shard statistics.
+
+
 ## Performance
 
 Most time is spent on ES queries, choose `--batch` size wisely!

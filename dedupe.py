@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import datetime
-import time
+import json
+import os.path
 import requests
-import ujson
 import sys
+import time
+import ujson
 from io import StringIO
+from collections import defaultdict
 from datetime import timedelta
 from time import sleep
 
@@ -33,7 +36,7 @@ def run(args):
                 be = time.time()
                 total += removed
                 print("Deleted {0} duplicates, in total {1}. Batch processed in {2}, running time {3}".format(removed, total, timedelta(seconds=(be - qe)),timedelta(seconds=(be - start))))
-                sleep(1) # avoid flooding ES
+                sleep(args.sleep) # avoid flooding ES
             if removed == 0:
                 break # continue with next index
         if (not args.all):
@@ -53,6 +56,9 @@ def es_uri(args):
 # duplicates
 def bulk_uri(args):
     return '{0}/_bulk?refresh=wait_for'.format(es_uri(args))
+
+def msearch_uri(args):
+    return '{0}/_msearch/template'.format(es_uri(args))
 
 def search_uri(index, args):
     return '{0}/{1}-{2}/_search'.format(es_uri(args), args.prefix, index)
@@ -110,23 +116,33 @@ def remove_duplicates(json, index, args):
         f.write('\n')
     return removed
 
+# write query into string buffer
+def delete_query(buf, prefix, index, doc_type, i):
+    buf.write('{"delete":{"_index":"')
+    buf.write(prefix)
+    buf.write('-')
+    buf.write(index)
+    buf.write('","_type":"')
+    buf.write(doc_type)
+    buf.write('","_id":"')
+    buf.write(i)
+    buf.write('"}}\n')
+
 # returns number of deleted items
 def bulk_remove(ids, index, args):
     buf = StringIO()
     for i in ids:
-        buf.write('{"delete":{"_index":"')
-        buf.write(args.prefix)
-        buf.write('-')
-        buf.write(index)
-        buf.write('","_type":"')
-        buf.write(args.doc_type)
-        buf.write('","_id":"')
-        buf.write(i)
-        buf.write('"}}\n')
+        delete_query(buf, args.prefix, index, args.doc_type, i)
     try:
         uri = bulk_uri(args)
         if args.verbose:
             print("POST {}".format(uri))
+        if args.noop:
+            print("== only simulation")
+            print("Delete query: {}".format(buf.getvalue()))
+            buf.close()
+            return 0
+
         resp = requests.post(uri, data=buf.getvalue())
         if args.debug:
             print("resp: {0}".format(resp.text))
@@ -149,6 +165,119 @@ def bulk_remove(ids, index, args):
 
     buf.close()
 
+def check_docs(file, args):
+    if os.path.isfile(file):
+        i = 0
+        total = 0
+        buf = StringIO()
+        stats = defaultdict(int)
+        with open(file) as f:
+            for line in f:
+                parts = line.split(":")
+                uri = parts[1].split("/")
+                buf.write('{"index":"')
+                buf.write(uri[0])
+                buf.write('"}\n{"inline":{"query":{"match":{"')
+                buf.write(args.field)
+                buf.write('":"')
+                buf.write(parts[0])
+                buf.write('"}},"_source":["')
+                buf.write(args.field)
+                buf.write('"]}}}\n')
+                i += 1
+                if i >= args.flush:
+                    total += i
+                    msearch(buf.getvalue(), args, stats, i)
+                    buf = StringIO()
+                    i = 0
+        if i > 0:
+            total += i
+            msearch(buf.getvalue(), args, stats, i)
+        print_stats("== Total", stats, args)
+        sum = 0
+        for k, v in stats.items():
+            sum += v
+        print("Queried for {} documents, retrieved status of {} ({:.2f}%).".format(total, sum, sum/total*100))
+        if sum < total:
+            print("WARNING: Check your ES configuration!")
+
+    else:
+        print("{} is not a file".format(file))
+        sys.exit(1)
+
+def msearch(query, args, stats, docs):
+    try:
+        uri = msearch_uri(args)
+        if args.verbose:
+            print("Quering for {} documents. GET {}".format(docs, uri))
+        if args.debug:
+            print("msearch: {}".format(query))
+        attempt = 0
+        to_del = StringIO()
+        while True:
+            resp = requests.get(uri, data=query)
+            if args.debug:
+                print("resp: {0}".format(resp.text))
+            if resp.status_code == 200:
+                r = ujson.loads(resp.text)
+                if 'error' in r and attempt < 5:
+                    attempt += 1
+                    print("Query failed: {}".format(r['error']))
+                    print('Retrying in {}s...'.format(args.sleep))
+                    sleep(args.sleep)
+                    continue
+
+                if 'responses' in r:
+                    curr = defaultdict(int)
+                    for doc in r['responses']:
+                        if 'hits' in doc and 'total' in doc['hits']:
+                            num = doc['hits']['total']
+                            curr[num] += 1
+                            if num > 1:
+                                j = 0
+                                for dupl in doc['hits']['hits']:
+                                    if j > 1:
+                                        delete_query(to_del, args.prefix, dupl['_index'], dupl['_type'], dupl['_id'])
+                                    j += 1
+
+                        else:
+                            print("Incomplete response: {}".format(doc))
+                            attempt += 1
+                            if attempt < 5:
+                                sleep(args.sleep)
+                                continue
+                            else:
+                                print("ES failed to respond")
+                                break
+                    # if all queries succeeded update global stats
+                    for k, v in curr.items():
+                        stats[k] += v
+                    print_stats("Batch", curr, args)
+                else:
+                    print("Unexpected response: {}".format(resp.text))
+                    sys.exit(5)
+                print_stats("Overall state", stats, args)
+            break
+            print(to_del.getvalue())
+        else:
+            print("failed to execute search query: #{0}".format(resp.text))
+    except requests.exceptions.ConnectionError as e:
+        print("ERROR: connection failed, check --host argument and port. Is ES running on {0}?".format(es_uri(args)))
+        print(e)
+
+def print_stats(msg, stats, args):
+    sum = 0
+    for key, value in stats.items():
+        sum += value
+    ok = 0
+    if 1 in stats:
+        ok = stats[1]
+    missing = 0
+    if 0 in stats:
+        missing = stats[0]
+    print("{}. OK: {} ({:.2f}%) out of {}. Fixable: {}. Missing: {}".format(msg, ok, (ok/sum*100.0), sum, (sum-ok-missing), missing))
+    if args.verbose:
+        print("stats: {}", stats)
 
 if __name__ == "__main__":
     import argparse
@@ -160,7 +289,7 @@ if __name__ == "__main__":
                         help="All indexes from given date till today")
     parser.add_argument("-b","--batch",
                         dest="batch", default=10, type=int,
-                        help="Batch size - how many documents are retrieved using one GET request")
+                        help="Batch size - how many documents are retrieved using one request")
     parser.add_argument("-m","--max_dupes",
                         dest="dupes", default=10, type=int,
                         help="Dupes size - how many duplicates per document are retrieved")
@@ -170,6 +299,9 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--field", dest="field",
                         default="Uuid",
                         help="Field in ES that suppose to be unique", metavar="field")
+    parser.add_argument("--flush",
+                        dest="flush", default=10000, type=int,
+                        help="Number records send in one bulk request")
     parser.add_argument("-i", "--index", dest="index",
                         default=datetime.date.today().strftime("%Y.%m.%d"),
                         help="Elasticsearch index suffix", metavar="index")
@@ -193,6 +325,15 @@ if __name__ == "__main__":
     parser.add_argument("--docs_log", dest="docs_log",
                         default="/tmp/es_dedupe.log",
                         help="Logfile for processed documents")
+    parser.add_argument("--check_log", dest="check",
+                        help="Verify that documents has been deleted")
+    parser.add_argument("--sleep",
+                        dest="sleep", default=1, type=int,
+                        help="Sleep in seconds after each ES query (in order to avoid cluster overloading)")
+    parser.add_argument("-n", "--noop",
+                        action="store_true", dest="noop",
+                        default=False,
+                        help="Do not take any destructive action (only print delete queries)")
 
 
     args = parser.parse_args()
@@ -200,7 +341,10 @@ if __name__ == "__main__":
     if args.verbose:
         print(args)
     try:
-        run(args)
+        if args.check:
+            check_docs(args.check, args)
+        else:
+            run(args)
     except KeyboardInterrupt:
         print('Interrupted')
         try:
