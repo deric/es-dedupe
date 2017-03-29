@@ -136,6 +136,15 @@ def delete_query(buf, index, doc_type, i):
     buf.write(i)
     buf.write('"}}\n')
 
+def log_done(buf, doc, index, type, id):
+    buf.write(doc)
+    buf.write(':')
+    buf.write(index)
+    buf.write('/')
+    buf.write(type)
+    buf.write('/')
+    buf.write(id)
+
 # returns number of deleted items
 def bulk_remove(buf, args):
     try:
@@ -216,6 +225,7 @@ def msearch(query, args, stats, docs):
             print("msearch: {}".format(query))
         attempt = 0
         to_del = StringIO()
+        to_log = StringIO()
         while True:
             resp = requests.get(uri, data=query)
             if args.debug:
@@ -235,6 +245,9 @@ def msearch(query, args, stats, docs):
                         if 'hits' in doc and 'total' in doc['hits']:
                             num = doc['hits']['total']
                             curr[num] += 1
+                            # a doc to remain in ES
+                            remain = doc['hits']['hits'][0]
+                            log_done(to_log, remain['_source'][args.field], dupl['_index'], dupl['_type'], dupl['_id'])
                             if num > 1:
                                 j = 0
                                 for dupl in doc['hits']['hits']:
@@ -266,6 +279,10 @@ def msearch(query, args, stats, docs):
                     print("PRETENDING to delete:\n{}".format(to_del.getvalue()))
                 else:
                     bulk_remove(to_del, args)
+                    # log docs as done
+                    with open(args.log_done, mode='a', encoding='utf-8') as f:
+                        f.write(to_log)
+                    to_log.close()
             break
         else:
             print("failed to execute search query: #{0}".format(resp.text))
@@ -330,9 +347,12 @@ if __name__ == "__main__":
                         action="store_true", dest="debug",
                         default=False,
                         help="enable debugging")
-    parser.add_argument("--docs_log", dest="docs_log",
+    parser.add_argument("--log_agg", dest="docs_log",
                         default="/tmp/es_dedupe.log",
-                        help="Logfile for partially deleted documents")
+                        help="Logfile for partially deleted documents (documents found by aggregate queries)")
+    parser.add_argument("--log_done", dest="log_done",
+                        default="/tmp/es_dedupe.done",
+                        help="Logfile containing all document IDs that remained in ES")
     parser.add_argument("--check_log", dest="check",
                         help="Verify that documents has been deleted")
     parser.add_argument("--sleep",
