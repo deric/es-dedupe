@@ -193,17 +193,20 @@ def check_docs(file, args):
         stats = defaultdict(int)
         with open(file) as f:
             for line in f:
-                parts = line.split(":")
-                uri = parts[1].split("/")
-                buf.write('{"index":"')
-                buf.write(uri[0])
-                buf.write('"}\n{"inline":{"query":{"match":{"')
-                buf.write(args.field)
-                buf.write('":"')
-                buf.write(parts[0])
-                buf.write('"}},"_source":["')
-                buf.write(args.field)
-                buf.write('"]}}}\n')
+                if ':' in line:
+                    parts = line.split(":")
+                    uri = parts[1].split("/")
+                    buf.write('{"index":"')
+                    buf.write(uri[0])
+                    buf.write('"}\n{"inline":{"query":{"match":{"')
+                    buf.write(args.field)
+                    buf.write('":"')
+                    buf.write(parts[0])
+                    buf.write('"}},"_source":["')
+                    buf.write(args.field)
+                    buf.write('"]}}}\n')
+                else:
+                    print("invalid line {}: {}".format(i, line))
                 i += 1
                 if i >= args.flush:
                     total += i
@@ -292,12 +295,15 @@ def msearch(query, args, stats, docs):
                 if args.noop:
                     print("PRETENDING to delete:\n{}".format(to_del.getvalue()))
                 else:
-                    print("Removing redundant {} documents".format(to_del.tell()))
+                    if args.verbose:
+                        print("Removing redundant {} documents".format(to_del.tell()))
                     bulk_remove(to_del, args)
+                    to_del = StringIO()
                     # log docs as done
             with open(args.log_done, mode='a', encoding='utf-8') as f:
                 f.write(to_log.getvalue())
             to_log.close()
+            to_log = StringIO()
             #sleep(args.sleep)
             break
         else:
