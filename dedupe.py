@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import datetime
-import json
 import os.path
 import requests
 import sys
@@ -110,10 +109,17 @@ def remove_duplicates(json, index, args):
                 if args.verbose:
                     print("skipping doc {0}".format(dupl["_id"]))
             i += 1
-    removed = bulk_remove(ids, index, args)
-    with open(args.docs_log, mode='a', encoding='utf-8') as f:
-        f.write('\n'.join(docs))
-        f.write('\n')
+    buf = StringIO()
+    for i in ids:
+        delete_query(buf, args.prefix, index, args.doc_type, i)
+
+    removed = bulk_remove(buf, args)
+    buf.close()
+    if removed > 0:
+        # log document IDs with their indexes
+        with open(args.docs_log, mode='a', encoding='utf-8') as f:
+            f.write('\n'.join(docs))
+            f.write('\n')
     return removed
 
 # write query into string buffer
@@ -129,10 +135,7 @@ def delete_query(buf, prefix, index, doc_type, i):
     buf.write('"}}\n')
 
 # returns number of deleted items
-def bulk_remove(ids, index, args):
-    buf = StringIO()
-    for i in ids:
-        delete_query(buf, args.prefix, index, args.doc_type, i)
+def bulk_remove(buf, args):
     try:
         uri = bulk_uri(args)
         if args.verbose:
@@ -140,7 +143,6 @@ def bulk_remove(ids, index, args):
         if args.noop:
             print("== only simulation")
             print("Delete query: {}".format(buf.getvalue()))
-            buf.close()
             return 0
 
         resp = requests.post(uri, data=buf.getvalue())
@@ -162,8 +164,6 @@ def bulk_remove(ids, index, args):
     except requests.exceptions.ConnectionError as e:
         print("ERROR: connection failed, check --host argument and port. Is ES running on {0}?".format(es_uri(args)))
         print(e)
-
-    buf.close()
 
 def check_docs(file, args):
     if os.path.isfile(file):
@@ -236,7 +236,7 @@ def msearch(query, args, stats, docs):
                             if num > 1:
                                 j = 0
                                 for dupl in doc['hits']['hits']:
-                                    if j > 1:
+                                    if j > 0:
                                         delete_query(to_del, args.prefix, dupl['_index'], dupl['_type'], dupl['_id'])
                                     j += 1
 
@@ -252,15 +252,22 @@ def msearch(query, args, stats, docs):
                     # if all queries succeeded update global stats
                     for k, v in curr.items():
                         stats[k] += v
-                    print_stats("Batch", curr, args)
+                    if args.debug:
+                        print_stats("Batch", curr, args)
                 else:
                     print("Unexpected response: {}".format(resp.text))
                     sys.exit(5)
-                print_stats("Overall state", stats, args)
+                if args.verbose:
+                    print_stats("Current state", stats, args)
+            if to_del.tell() > 0:
+                if args.noop:
+                    print("PRETENDING to delete:\n{}".format(to_del.getvalue()))
+                else:
+                    bulk_remove(to_del, args)
             break
-            print(to_del.getvalue())
         else:
             print("failed to execute search query: #{0}".format(resp.text))
+        to_del.close()
     except requests.exceptions.ConnectionError as e:
         print("ERROR: connection failed, check --host argument and port. Is ES running on {0}?".format(es_uri(args)))
         print(e)
@@ -324,7 +331,7 @@ if __name__ == "__main__":
                         help="enable debugging")
     parser.add_argument("--docs_log", dest="docs_log",
                         default="/tmp/es_dedupe.log",
-                        help="Logfile for processed documents")
+                        help="Logfile for partially deleted documents")
     parser.add_argument("--check_log", dest="check",
                         help="Verify that documents has been deleted")
     parser.add_argument("--sleep",

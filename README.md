@@ -24,6 +24,16 @@ A log file containing documents with unique fields is written into `/tmp/es_dedu
 By design ES aggregate queries are not necessarily precise. Depending on your cluster setup, some documents won't be deleted due to
 inaccurate shard statistics.
 
+Running `$ python3 dedupe.py --check_log /tmp/es_dedupe.log --noop` will query for documents found by aggregate and queries check whether were actually
+deleted.
+```
+== Starting ES deduplicator....
+PRETENDING to delete:
+{"delete":{"_index":"nginx_access_logs-2017.03.17","_type":"nginx.access","_id":"AVrdoYEJy1wo8jcgI7t5"}}
+
+== Total. OK: 4 (80.00%) out of 5. Fixable: 1. Missing: 0
+Queried for 5 documents, retrieved status of 5 (100.00%).
+```
 
 ## Performance
 
