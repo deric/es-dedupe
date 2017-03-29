@@ -259,7 +259,9 @@ def msearch(query, args, stats, docs):
                                 remain = doc['hits']['hits'][0]
                                 log_done(to_log, remain['_source'][args.field], remain['_index'], remain['_type'], remain['_id'])
                             else:
-                                print("Unexpeced doc: {}".format(doc['hits']))
+                                if args.debug:
+                                    print("Missing doc: {}".format(doc['hits']))
+                                stats[0] += 1
                             if num > 1:
                                 j = 0
                                 for dupl in doc['hits']['hits']:
@@ -290,11 +292,13 @@ def msearch(query, args, stats, docs):
                 if args.noop:
                     print("PRETENDING to delete:\n{}".format(to_del.getvalue()))
                 else:
+                    print("Removing redundant {} documents".format(to_del.tell()))
                     bulk_remove(to_del, args)
                     # log docs as done
             with open(args.log_done, mode='a', encoding='utf-8') as f:
                 f.write(to_log.getvalue())
             to_log.close()
+            #sleep(args.sleep)
             break
         else:
             print("failed to execute search query: #{0}".format(resp.text))
@@ -338,7 +342,7 @@ if __name__ == "__main__":
                         default="Uuid",
                         help="Field in ES that suppose to be unique", metavar="field")
     parser.add_argument("--flush",
-                        dest="flush", default=10000, type=int,
+                        dest="flush", default=500, type=int,
                         help="Number records send in one bulk request")
     parser.add_argument("-i", "--index", dest="index",
                         default=datetime.date.today().strftime("%Y.%m.%d"),
