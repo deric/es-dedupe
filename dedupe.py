@@ -110,8 +110,12 @@ def remove_duplicates(json, index, args):
                     print("skipping doc {0}".format(dupl["_id"]))
             i += 1
     buf = StringIO()
+    idx = index
+    if args.prefix:
+        idx = "{}-{}".format(args.prefix, idx)
+
     for i in ids:
-        delete_query(buf, args.prefix, index, args.doc_type, i)
+        delete_query(buf, idx, args.doc_type, i)
 
     removed = bulk_remove(buf, args)
     buf.close()
@@ -123,10 +127,8 @@ def remove_duplicates(json, index, args):
     return removed
 
 # write query into string buffer
-def delete_query(buf, prefix, index, doc_type, i):
+def delete_query(buf, index, doc_type, i):
     buf.write('{"delete":{"_index":"')
-    buf.write(prefix)
-    buf.write('-')
     buf.write(index)
     buf.write('","_type":"')
     buf.write(doc_type)
@@ -237,7 +239,7 @@ def msearch(query, args, stats, docs):
                                 j = 0
                                 for dupl in doc['hits']['hits']:
                                     if j > 0:
-                                        delete_query(to_del, args.prefix, dupl['_index'], dupl['_type'], dupl['_id'])
+                                        delete_query(to_del, dupl['_index'], dupl['_type'], dupl['_id'])
                                     j += 1
 
                         else:
@@ -313,7 +315,6 @@ if __name__ == "__main__":
                         default=datetime.date.today().strftime("%Y.%m.%d"),
                         help="Elasticsearch index suffix", metavar="index")
     parser.add_argument("-p", "--prefix", dest="prefix",
-                        default="nginx_access_logs",
                         help="Elasticsearch index prefix", metavar="prefix")
     parser.add_argument("-P", "--port", dest="port",
                         default=9200, type=int,
