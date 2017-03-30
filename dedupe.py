@@ -53,8 +53,9 @@ def run(args):
                 if args.no_chck:
                     print("Skipping ES consistency check.")
                 else:
-                    print("ES consistency check:")
-                    check_docs(args.log_agg, args)
+                    removed = check_docs(args.log_agg, args)
+                    total += removed
+                    print("Secondary check removed {}, in total {}".format(removed, total))
                     os.remove(args.log_agg)
 
             if removed == 0:
@@ -198,6 +199,7 @@ def bulk_remove(buf, args):
         print(e)
 
 def check_docs(file, args):
+    deleted = 0
     if os.path.isfile(file):
         i = 0
         total = 0
@@ -222,25 +224,28 @@ def check_docs(file, args):
                 i += 1
                 if i >= args.flush:
                     total += i
-                    msearch(buf.getvalue(), args, stats, i)
+                    deleted += msearch(buf.getvalue(), args, stats, i)
                     buf = StringIO()
                     i = 0
         if i > 0:
             total += i
-            msearch(buf.getvalue(), args, stats, i)
+            deleted += msearch(buf.getvalue(), args, stats, i)
         print_stats("== Total", stats, args)
         sum = 0
         for k, v in stats.items():
             sum += v
-        print("Queried for {} documents, retrieved status of {} ({:.2f}%).".format(total, sum, sum/total*100))
         if sum < total:
+            print("Queried for {} documents, retrieved status of {} ({:.2f}%).".format(total, sum, sum/total*100))
             print("WARNING: Check your ES status and configuration!")
-
+            # rather exit, we'd quering incomplete cluster
+            sys.exit(3)
+        return deleted
     else:
         print("{} is not a file".format(file))
         sys.exit(1)
 
 def msearch(query, args, stats, docs):
+    cnt_deleted = 0
     try:
         uri = msearch_uri(args)
         if args.verbose:
@@ -309,7 +314,7 @@ def msearch(query, args, stats, docs):
                 else:
                     if args.verbose:
                         print("Removing redundant {} documents".format(to_del.tell()))
-                    bulk_remove(to_del, args)
+                    cnt_deleted = bulk_remove(to_del, args)
                     to_del = StringIO()
                     # log docs as done
             with open(args.log_done, mode='a', encoding='utf-8') as f:
@@ -324,6 +329,7 @@ def msearch(query, args, stats, docs):
     except requests.exceptions.ConnectionError as e:
         print("ERROR: connection failed, check --host argument and port. Is ES running on {0}?".format(es_uri(args)))
         print(e)
+    return cnt_deleted
 
 def print_stats(msg, stats, args):
     sum = 0
