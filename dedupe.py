@@ -277,7 +277,7 @@ def msearch(query, args, stats, docs):
                             # a doc to remain in ES
                             if 'hits' in doc['hits'] and len(doc['hits']['hits']) > 0:
                                 remain = doc['hits']['hits'][0]
-                                log_done(to_log, remain['_source'][args.field], remain['_index'], remain['_type'], remain['_id'])
+                                log_done(to_log, str(remain['_source'][args.field]), remain['_index'], remain['_type'], remain['_id'])
                             else:
                                 if args.debug:
                                     print("Missing doc: {}".format(doc['hits']))
