@@ -47,7 +47,7 @@ def run(args):
                 removed = remove_duplicates(resp, idx, args)
                 be = time.time()
                 total += removed
-                print("Deleted {0} duplicates, in total {1}. Batch processed in {2}, running time {3}".format(removed, total, timedelta(seconds=(be - qe)),timedelta(seconds=(be - start))))
+                print("Deleted {} duplicates, in total {:,}. Batch processed in {}, running time {}".format(removed, total, timedelta(seconds=(be - qe)),timedelta(seconds=(be - start))))
                 sleep(args.sleep) # avoid flooding ES
             if os.path.isfile(args.log_agg):
                 if args.no_chck:
@@ -55,7 +55,7 @@ def run(args):
                 else:
                     removed = check_docs(args.log_agg, args)
                     total += removed
-                    print("Secondary check removed {}, in total {}".format(removed, total))
+                    print("2ndChck removed {}, in total {:,}".format(removed, total))
                     os.remove(args.log_agg)
 
             if removed == 0:
@@ -230,7 +230,7 @@ def check_docs(file, args):
         if i > 0:
             total += i
             deleted += msearch(buf.getvalue(), args, stats, i)
-        print_stats("== Total", stats, args)
+        print_stats("== Consistency check", stats, args)
         sum = 0
         for k, v in stats.items():
             sum += v
