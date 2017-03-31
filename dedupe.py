@@ -11,17 +11,20 @@ from collections import defaultdict
 from datetime import timedelta
 from time import sleep
 
+
 def msg_using(prefix, index):
     if prefix:
         print('Using index {}-{}'.format(prefix, index))
     else:
         print('Using index {}'.format(index))
 
+
 def idx_name(args, index):
     # when index prefix is defined
     if args.prefix:
         return "{}-{}".format(args.prefix, index)
     return index
+
 
 def run(args):
     start = time.time()
@@ -42,13 +45,13 @@ def run(args):
             else:
                 print("ERROR: Unexpected response {}".format(resp))
                 sys.exit()
-            print("ES query took {}, retrieved {} unique docs".format(timedelta(seconds=(qe - qs)),docs))
+            print("ES query took {}, retrieved {} unique docs".format(timedelta(seconds=(qe - qs)), docs))
             if docs > 0:
                 removed = remove_duplicates(resp, idx, args)
                 be = time.time()
                 total += removed
-                print("Deleted {} duplicates, in total {:,}. Batch processed in {}, running time {}".format(removed, total, timedelta(seconds=(be - qe)),timedelta(seconds=(be - start))))
-                sleep(args.sleep) # avoid flooding ES
+                print("Deleted {} duplicates, in total {:,}. Batch processed in {}, running time {}".format(removed, total, timedelta(seconds=(be - qe)), timedelta(seconds=(be - start))))
+                sleep(args.sleep)  # avoid flooding ES
             if os.path.isfile(args.log_agg):
                 if args.no_chck:
                     print("Skipping ES consistency check.")
@@ -59,9 +62,9 @@ def run(args):
                     os.remove(args.log_agg)
 
             if removed == 0:
-                break # continue with next index
+                break  # continue with next index
         if (not args.all):
-            break # process only one index
+            break  # process only one index
         if not args.prefix:
             break
         index = inc_day(index)
@@ -69,38 +72,44 @@ def run(args):
     end = time.time()
     print("== de-duplication process completed successfully. Took: {0}".format(timedelta(seconds=(end - start))))
 
+
 def inc_day(str_date):
     return (datetime.datetime.strptime(str_date, "%Y.%m.%d").date() + datetime.timedelta(days=1)).strftime("%Y.%m.%d")
 
+
 def es_uri(args):
     return 'http://{0}:{1}'.format(args.host, args.port)
+
 
 # we have to wait for updating index, otherwise we might be deleting documents that are no longer
 # duplicates
 def bulk_uri(args):
     return '{0}/_bulk?refresh=wait_for'.format(es_uri(args))
 
+
 def msearch_uri(args):
     return '{0}/_msearch/template'.format(es_uri(args))
+
 
 def search_uri(index, args):
     return '{}/{}/_search'.format(es_uri(args), index)
 
+
 def fetch(index, args):
     uri = search_uri(index, args)
     payload = {"size": 0,
-                "aggs":{
-                    "duplicateCount":{"terms":
-                        {"field": args.field,"min_doc_count": 2,"size":args.batch},
-                        "aggs":{
-                            "duplicateDocuments":
-                                # TODO: _source can contain custom fields, when empty whole document is trasferred
-                                # which causes unnecessary traffic
-                                {"top_hits":{"size": args.dupes, "_source":[args.field]}}
-                          }
-                        }
-                }
-            }
+                "aggs": {
+                    "duplicateCount": {"terms":
+                            {"field": args.field, "min_doc_count": 2, "size": args.batch},
+                                "aggs": {
+                                    "duplicateDocuments":
+                                    # TODO: _source can contain custom fields, when empty whole document is trasferred
+                                    # which causes unnecessary traffic
+                                    {"top_hits": {"size": args.dupes, "_source": [args.field]}}
+                                }
+                            }
+                    }
+               }
     try:
         json = ujson.dumps(payload)
         if args.verbose:
@@ -119,13 +128,13 @@ def fetch(index, args):
         print(e)
     return 0
 
+
 def remove_duplicates(json, index, args):
     docs = []
     ids = []
     idx = index
     for bucket in json["aggregations"]["duplicateCount"]["buckets"]:
         docs.append("{}:{}/{}/{}".format(bucket['key'], idx, args.doc_type, bucket["duplicateDocuments"]["hits"]["hits"][0]["_id"]))
-        #print("bucket: {0}".format(bucket))
         i = 0
         for dupl in bucket["duplicateDocuments"]["hits"]["hits"]:
             if i > 0:
@@ -147,6 +156,7 @@ def remove_duplicates(json, index, args):
             f.write('\n')
     return removed
 
+
 # write query into string buffer
 def delete_query(buf, index, doc_type, i):
     buf.write('{"delete":{"_index":"')
@@ -157,6 +167,7 @@ def delete_query(buf, index, doc_type, i):
     buf.write(i)
     buf.write('"}}\n')
 
+
 def log_done(buf, doc, index, type, id):
     buf.write(doc)
     buf.write(':')
@@ -166,6 +177,7 @@ def log_done(buf, doc, index, type, id):
     buf.write('/')
     buf.write(id)
     buf.write('\n')
+
 
 # returns number of deleted items
 def bulk_remove(buf, args):
@@ -187,7 +199,7 @@ def bulk_remove(buf, args):
                 print(r)
             cnt = 0
             for item in r['items']:
-                if ('found' in item['delete']) and item['delete']['found'] == True:
+                if ('found' in item['delete']) and item['delete']['found']:
                     cnt += 1
                 else:
                     print(item)
@@ -197,6 +209,7 @@ def bulk_remove(buf, args):
     except requests.exceptions.ConnectionError as e:
         print("ERROR: connection failed, check --host argument and port. Is ES running on {0}?".format(es_uri(args)))
         print(e)
+
 
 def check_docs(file, args):
     deleted = 0
@@ -243,6 +256,7 @@ def check_docs(file, args):
     else:
         print("{} is not a file".format(file))
         sys.exit(1)
+
 
 def msearch(query, args, stats, docs):
     cnt_deleted = 0
@@ -321,7 +335,6 @@ def msearch(query, args, stats, docs):
                 f.write(to_log.getvalue())
             to_log.close()
             to_log = StringIO()
-            #sleep(args.sleep)
             break
         else:
             print("failed to execute search query: #{0}".format(resp.text))
@@ -330,6 +343,7 @@ def msearch(query, args, stats, docs):
         print("ERROR: connection failed, check --host argument and port. Is ES running on {0}?".format(es_uri(args)))
         print(e)
     return cnt_deleted
+
 
 def print_stats(msg, stats, args):
     sum = 0
@@ -345,6 +359,7 @@ def print_stats(msg, stats, args):
     if args.verbose:
         print("stats: {}", stats)
 
+
 if __name__ == "__main__":
     import argparse
 
@@ -353,10 +368,10 @@ if __name__ == "__main__":
                         action="store_true", dest="all",
                         default=False,
                         help="All indexes from given date till today")
-    parser.add_argument("-b","--batch",
+    parser.add_argument("-b", "--batch",
                         dest="batch", default=10, type=int,
                         help="Batch size - how many documents are retrieved using one request")
-    parser.add_argument("-m","--max_dupes",
+    parser.add_argument("-m", "--max_dupes",
                         dest="dupes", default=10, type=int,
                         help="Dupes size - how many duplicates per document are retrieved")
     parser.add_argument("-H", "--host", dest="host",
@@ -407,7 +422,6 @@ if __name__ == "__main__":
                         action="store_true", dest="noop",
                         default=False,
                         help="Do not take any destructive action (only print delete queries)")
-
 
     args = parser.parse_args()
     print("== Starting ES deduplicator....")
