@@ -113,7 +113,7 @@ def fetch(index, args):
             r = ujson.loads(resp.text)
             return r
         else:
-            print("failed to fetch duplicates: #{0}".format(resp.text))
+            print("ERROR: failed to fetch duplicates: {0}".format(resp.text))
     except requests.exceptions.ConnectionError as e:
         print("ERROR: connection failed, check --host argument and port. Is ES running on {0}?".format(es_uri(args)))
         print(e)
@@ -401,7 +401,7 @@ if __name__ == "__main__":
     parser.add_argument("--check_log", dest="check",
                         help="Verify that documents has been deleted")
     parser.add_argument("--sleep",
-                        dest="sleep", default=1, type=int,
+                        dest="sleep", default=60, type=int,
                         help="Sleep in seconds after each ES query (in order to avoid cluster overloading)")
     parser.add_argument("-n", "--noop",
                         action="store_true", dest="noop",

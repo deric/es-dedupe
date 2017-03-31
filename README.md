@@ -17,6 +17,7 @@ will try to find duplicated documents in index called `nginx_logs-2017.03.17` wh
  * `-h` displays help
  * `-m` number of duplicated documents with same unique field value
  * `-t` document type in ES
+ * `--sleep 60` time between aggregation requests (gives ES time to run GC on heap)
 
 WARNING: Running huge bulk operations on ES cluster might influence performance of your cluster or even crash some nodes if heap
 is not large enough. Increment `-b` and `-m` parameters with caution! ES returns at most `b * m` documents, eventually you might hit
@@ -40,7 +41,7 @@ Queried for 5 documents, retrieved status of 5 (100.00%).
 
 ## Performance
 
-Most time is spent on ES queries, choose `--batch` size wisely!
+Most time is spent on ES queries, choose `--batch` and `--max_dupes` size wisely! Between each bulk request script sleeps for `--sleep {seconds}`.
 
 Delete queries are send via `_bulk` API. Processing batch with several thousand documents takes several seconds:
 ```
