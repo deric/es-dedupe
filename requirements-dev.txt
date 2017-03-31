@@ -1,0 +1,6 @@
+mock
+pytest
+pytest-cov
+pytest-pep8
+autopep8
+flake8
