@@ -7,17 +7,22 @@ A tool for removing duplicated documents that are grouped by some unique field (
 
 Usage:
 ```
-python3 -u dedupe.py -H localhost -i 2017.03.17 -b 10000 -m 100 -a -f Uuid --prefix nginx_logs > es_dedupe.log
+python -u dedupe.py -H localhost -P 9200 -i exact-index-name -f Uuid > es_dedupe.log
 ```
-will try to find duplicated documents in index called `nginx_logs-2017.03.17` where documents are grouped by `Uuid` field.
+will try to find duplicated documents in an index called 'exact-index-name' where documents are grouped by `Uuid` field.
 
- * `-a` will process all indexes named with patterh `%Y.%m.%d` until today.
+```
+python -u dedupe.py -H localhost -P 9200 --all --prefix 'esindexprefix' --prefixseparator '-' --indexexclude '^excludedindex.*' -f fingerprint > es_dedupe.log
+```
+will try to find duplicated documents in all indices known to the ES instance on localhost:9200, that look akin to 'esindexprefix-\*' while excluding all indices starting with 'excludedindex', where documents are grouped by `fingerprint` field.
+
+ * `-a` will process all indexes known to the ES instance that match the prefix and prefixseparator.
  * `-b` batch size - critical for performance ES queries might take several minutes, depending on size of your indexes
  * `-f` name of field that should be unique
  * `-h` displays help
  * `-m` number of duplicated documents with same unique field value
  * `-t` document type in ES
- * `--sleep 60` time between aggregation requests (gives ES time to run GC on heap)
+ * `--sleep 60` time between aggregation requests (gives ES time to run GC on heap), 15 seconds seems to be enough to avoid triggering ES flood protection though.
 
 WARNING: Running huge bulk operations on ES cluster might influence performance of your cluster or even crash some nodes if heap
 is not large enough. Increment `-b` and `-m` parameters with caution! ES returns at most `b * m` documents, eventually you might hit
@@ -28,7 +33,7 @@ A log file containing documents with unique fields is written into `/tmp/es_dedu
 By design ES aggregate queries are not necessarily precise. Depending on your cluster setup, some documents won't be deleted due to
 inaccurate shard statistics.
 
-Running `$ python3 dedupe.py --check_log /tmp/es_dedupe.log --noop` will query for documents found by aggregate and queries check whether were actually
+Running `$ python dedupe.py --check_log /tmp/es_dedupe.log --noop` will query for documents found by aggregate and queries check whether were actually
 deleted.
 ```
 == Starting ES deduplicator....
@@ -56,11 +61,21 @@ Deleted 276673 duplicates, in total 609802. Batch processed in 0:00:08.487847, r
 ```
 
 ## Requirements
+For the installation  use the tools provided by your operating system.
+
+On Linux   this can be one of the following:  yum, dnf, apt, yast, emerge, ..
 ```
-apt install python3-dev
-pip3 install -r requirements.txt
+* Install python (2 or 3, both will work)
+* Install python*ujson and python*requests for the fitting python version
+```
+
+On Windows you are pretty much on your own, but fear not, you can do the following ;-)
+```
+* Download and install a python version from https://www.python.org/ .
+* Open a console terminal and head to the repository copy of es-deduplicator, then run:
+pip install -r requirements.txt
 ```
 
 ## History
 
-Originaly written in bash which performed terribly due to slow JSON processing with pipes and `jq`. Python with `ujson` seems to be better fitted for this task.
+Originally written in bash which performed terribly due to slow JSON processing with pipes and `jq`. Python with `ujson` seems to be better fitted for this task.
