@@ -33,6 +33,9 @@ re_indexexclude = re.compile('^$')
 
 # out current scriptname (minus the path)
 ourname = os.path.basename(__file__)
+# At least Elasticsearch 6.2.2 does not support application/x-ndjson, but wants to enforce setting an explicit Content-Type.  As to why Elastic wouldn't support this, I have no idea.
+es_headers = { 'Content-Type': 'application/json' }
+
 
 
 
@@ -204,6 +207,7 @@ def allsettings_uri(args):
 
 
 def fetch_indexlist(args):
+    global es_headers
     uri = idxlist_uri(args)
     payload = {}
     try:
@@ -211,7 +215,7 @@ def fetch_indexlist(args):
         if args.verbose:
             logme("## GET {0}".format(uri))
             logme("##\tdata. {0}".format(json))
-        resp = requests.get(uri, data=json)
+        resp = requests.get(uri, data=json, headers=es_headers)
         if args.debug:
             logme("## resp: {0}".format(resp.text))
         if (resp.status_code == 200):
@@ -375,12 +379,13 @@ def bulk_remove(buf, args):
 
 
 def fetch_allsettings(args):
+    global es_headers
     tmpidx2settings = {}
     try:
         uri = allsettings_uri(args)
         if args.verbose:
             logme("# GET {}".format(uri))
-        resp = requests.get(uri, data={})
+        resp = requests.get(uri, data={}, headers=es_headers)
         # {"indexname_109":{"settings":{"index":{"number_of_shards":"4","blocks":{"write":"false","metadata":"false","read":"false"},"provided_name":"indexname_109","creation_date":"1520121603118","analysis":{"analyzer":{"analyzer_keyword":{"filter":"lowercase","tokenizer":"keyword"}}},"number_of_replicas":"0","uuid":"some-uuid-really-now","version":{"created":"5060499"}}}}, ....}
         r = {}
         if args.debug:
@@ -490,6 +495,7 @@ def check_docs(file, args):
 
 
 def msearch(query, args, stats, docs):
+    global es_headers
     cnt_deleted = 0
     try:
         uri = msearch_uri(args)
@@ -501,7 +507,7 @@ def msearch(query, args, stats, docs):
         to_del = StringIO()
         to_log = StringIO()
         while True:
-            resp = requests.get(uri, data=query)
+            resp = requests.get(uri, data=query, headers=es_headers)
             if args.debug:
                 logme("## resp: {0}".format(resp.text))
             if (resp.status_code == 200):
@@ -599,7 +605,7 @@ if (__name__ == "__main__"):
 
     parser = argparse.ArgumentParser(description="Elasticsearch dupe deleter")
     parser.add_argument("-a", "--all",
-                        action="store_true", dest="all", default=False,
+                        action="store_true", dest="all", default=True,
                         help="All indexes from given date till today")
     parser.add_argument("-b", "--batch",
                         dest="batch", default=10, type=int,
