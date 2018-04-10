@@ -90,7 +90,7 @@ def run(args):
                     indices[idxname] = storesize
             else:
                 if args.verbose:
-                    logme("# WARNING - Could not find settings for index '{0}'".format(idxname))
+                    logme("# WARNING - Couldn't find settings for index '{0}'".format(idxname))
     logme("The following indices matched your name pattern {0} :\n{1}\n\n".format(idxlist_uri(args), pp.pformat(indices, 4, -1)))
     for idxname in indices:
         if (workisdone == False):
@@ -115,7 +115,7 @@ def run(args):
             else:
                 logme("ERROR - Unexpected response {}".format(resp))
                 workisdone = True
-            logme("ES query took {}, retrieved {} unique docs".format(timedelta(seconds=(qe - qs)), docs))
+            logme("ES query took {}, retrieved {} unique docs that have dupes".format(timedelta(seconds=(qe - qs)), docs))
 
         if (docs >= 0):
             bs = time.time()
@@ -123,9 +123,9 @@ def run(args):
             if (args.noop == False):
                 skipremoval = False
                 if (idxname not in idx2settings):
-                    logme("WARNING - could not find settings for index '{0}'".format(idxname))
+                    logme("WARNING - Couldn't find settings for index '{0}'".format(idxname))
                 else:
-                    if (idx2settings[idxname]['write'] != "false"):
+                    if (('write' in idx2settings[idxname]) and (idx2settings[idxname]['write'] != "false")):
                         if args.verbose:
                             logme("# Index '{0}' is not writable in settings, updating blocks-write to false".format(idxname))
                         if (set_index_writable(args, idxname, "false") == False):
@@ -159,7 +159,7 @@ def run(args):
                         total += removed
                         logme("     2ndChck removed {}, in total {:,}".format(removed, total))
                         os.remove(args.log_agg)
-                if (idx2settings[idxname]['_esdedup_changed_writeflag'] == True):
+                if (('_esdedup_changed_writeflag' in idx2settings[idxname]) and (idx2settings[idxname]['_esdedup_changed_writeflag'] == True)):
                     if (set_index_writable(args, idxname, idx2settings[idxname]['write']) == False):
                         logme("WARNING - Index '{0}' writable setting could not be reset to {1}.".format(idxname, idx2settings[idxname]['write']))
                     else:
@@ -231,6 +231,7 @@ def fetch_indexlist(args):
 
 
 def fetch(idxname, args):
+    global es_headers
     uri = search_uri(idxname, args)
     payload = {"size": 0,
                 "aggs": {
@@ -250,7 +251,7 @@ def fetch(idxname, args):
         if args.verbose:
             logme("# idxname {0}: POST {1}".format(idxname, uri))
             logme("#\tdata: {0}".format(json))
-        resp = requests.post(uri, data=json)
+        resp = requests.post(uri, data=json, headers=es_headers)
         if args.debug:
             logme("## idxname {0}, resp: {1}".format(idxname, resp.text))
         if (resp.status_code == 200):
@@ -344,6 +345,7 @@ def log_done(buf, doc, idxname, type, id):
 
 # returns number of deleted items
 def bulk_remove(buf, args):
+    global es_headers
     try:
         uri = bulk_uri(args)
         if args.verbose:
@@ -352,7 +354,7 @@ def bulk_remove(buf, args):
             logme("NOT using delete query: {}".format(buf.getvalue()))
             return 0
 
-        resp = requests.post(uri, data=buf.getvalue())
+        resp = requests.post(uri, data=buf.getvalue(), headers=es_headers)
         if args.debug:
             logme("## resp: {0}".format(resp.text))
         if (resp.status_code == 200):
@@ -394,11 +396,19 @@ def fetch_allsettings(args):
         if ('errors' in r):
             logme(r)
         for idxname in r:
-            if (('settings' in r[idxname]) and ('index' in r[idxname]['settings']) and ('blocks' in r[idxname]['settings']['index'])):
-                tmpblocks = r[idxname]['settings']['index']['blocks']
-                tmpblocks['_esdedup_changed_writeflag'] = False         # sic, we are using a python Boolean here, instead of json text "bool"
+            tmpblocks = {}
+            if (('settings' in r[idxname]) and ('index' in r[idxname]['settings'])):
+                if ('blocks' in r[idxname]['settings']['index']):
+                    tmpblocks = r[idxname]['settings']['index']['blocks']
+                    tmpblocks['_esdedup_changed_writeflag'] = False         # sic, we are using a python Boolean here, instead of json text "bool"
+                elif ('uuid' in r[idxname]['settings']['index']):
+                    tmpblocks = {}
+                else:
+                    tmpblocks = None
+            if (tmpblocks != None):
                 if (idxname not in tmpidx2settings):
                     tmpidx2settings[idxname] = copy.copy(tmpblocks)
+                
     except requests.exceptions.ConnectionError as e:
         logme("ERROR - connection failed, check --host argument and port. Is ES running on {0}?".format(es_uri(args)))
         logme(e)
@@ -409,6 +419,7 @@ def fetch_allsettings(args):
 
 
 def set_index_writable(args, idxname, flag):
+    global es_headers
     rc = False
     try:
         if (flag == "true"): flag = "true"
@@ -419,7 +430,7 @@ def set_index_writable(args, idxname, flag):
         if args.verbose:
             logme("# idxname {0}: PUT {1}".format(idxname, uri))
             logme("#\tdata: {0}".format(json))
-        resp = requests.put(uri, data=json)
+        resp = requests.put(uri, data=json, headers=es_headers)
         r = {}
         if args.debug:
             logme("## idxname {0}, resp: {1}".format(idxname, resp.text))
