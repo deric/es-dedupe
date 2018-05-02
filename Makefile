@@ -1,4 +1,26 @@
+NAME ?=es-dedupe
+REGISTRY ?= deric
+
 all: clean test
+
+build:
+	docker pull `head -n 1 Dockerfile | awk '{ print $$2 }'`
+	docker build -t $(NAME) .
+
+define RELEASE
+	git tag "v$(1)"
+	git push
+	git push --tags
+  docker tag $(NAME) $(REGISTRY)/$(NAME):v$(1)
+	docker tag $(NAME) $(REGISTRY)/$(NAME):latest
+	docker push $(REGISTRY)/$(NAME)
+endef
+
+shell: build
+	docker run --entrypoint /bin/bash -it $(NAME)
+
+release: build
+	$(call RELEASE,$(v))
 
 dev:
 	pip install -r requirements.txt -r requirements-dev.txt

@@ -1,11 +1,18 @@
-# ES deduplicator
+# ES-dedupe
 
 A tool for removing duplicated documents that are grouped by some unique field (e.g. `--field Uuid`). Removal process consists of two phases:
 
  1. Aggregate query find documents that have same `field` value and at least 2 occurences. One copy of such document is left in ES all other are deleted via Bulk API (almost all, usually - there's always some catch). We wait for index update after each `DELETE` operatation. Processed documents are logged into `/tmp/es_dedupe.log`.
  2. Unfortunately aggregate queries are not necessarily exact. Based on `/tmp/es_dedupe.log` logfile we query for each `field` value and DELETE document copies on other shards. Depending on number of nodes and shards in cluster there might be still document that aggregate query didn't return. In order to disable 2nd step use `--no-chck` flag.
 
-Usage:
+## Docker
+
+Running from Docker:
+```
+docker run deric/es-dedupe -H localhost -P 9200 -i exact-index-name -f Uuid
+```
+
+## Usage
 ```
 python -u dedupe.py -H localhost -P 9200 -i exact-index-name -f Uuid > es_dedupe.log
 ```
