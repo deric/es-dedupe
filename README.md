@@ -14,7 +14,7 @@ Running from Docker:
 ```
 docker run -it -e ES=locahost -e INDEX=my-index -e FIELD=id deric/es-dedupe:latest
 ```
-You can either override Docker commad or use ENV variable to pass arguments.
+You can either override Docker command or use ENV variable to pass arguments.
 
 ## Usage
 Use `-h/--help` to see supported options:
@@ -23,12 +23,12 @@ docker run --rm deric/es-dedupe:latest dedupe --help
 ```
 
 ```
-python -u dedupe.py -H localhost -P 9200 -i exact-index-name -f Uuid > es_dedupe.log
+docker run --rm deric/es-dedupe:latest dedupe -H localhost -P 9200 -i exact-index-name -f Uuid > es_dedupe.log 2>&1
 ```
 will try to find duplicated documents in an index called 'exact-index-name' where documents are grouped by `Uuid` field.
 
 ```
-python -u dedupe.py -H localhost -P 9200 --all --prefix 'esindexprefix' --prefixseparator '-' --indexexclude '^excludedindex.*' -f fingerprint > es_dedupe.log
+docker run --rm deric/es-dedupe:latest dedupe -H localhost -P 9200 --all --prefix 'esindexprefix' --prefixseparator '-' --indexexclude '^excludedindex.*' -f fingerprint > es_dedupe.log 2>&1
 ```
 will try to find duplicated documents in all indices known to the ES instance on localhost:9200, that look akin to 'esindexprefix-\*' while excluding all indices starting with 'excludedindex', where documents are grouped by `fingerprint` field.
 
@@ -49,8 +49,11 @@ A log file containing documents with unique fields is written into `/tmp/es_dedu
 By design ES aggregate queries are not necessarily precise. Depending on your cluster setup, some documents won't be deleted due to
 inaccurate shard statistics.
 
-Running `$ python dedupe.py --check_log /tmp/es_dedupe.log --noop` will query for documents found by aggregate and queries check whether were actually
-deleted.
+`--check_log` will query for documents found by aggregate and queries check whether were actually deleted.
+```
+docker run --rm deric/es-dedupe:latest dedupe --check_log /tmp/es_dedupe.log --noop
+```
+
 ```
 == Starting ES deduplicator....
 PRETENDING to delete:
@@ -80,17 +83,17 @@ Deleted 276673 duplicates, in total 609802. Batch processed in 0:00:08.487847, r
 For the installation  use the tools provided by your operating system.
 
 On Linux   this can be one of the following:  yum, dnf, apt, yast, emerge, ..
-```
+
 * Install python (2 or 3, both will work)
 * Install python*ujson and python*requests for the fitting python version
-```
+
 
 On Windows you are pretty much on your own, but fear not, you can do the following ;-)
-```
+
 * Download and install a python version from https://www.python.org/ .
 * Open a console terminal and head to the repository copy of es-deduplicator, then run:
 pip install -r requirements.txt
-```
+
 
 ## History
 
