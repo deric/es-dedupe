@@ -19,7 +19,8 @@ COPY --from=builder /usr/local/lib/python3.5/ /usr/local/lib/python3.5/
 
 RUN mkdir /app
 ADD dedupe.py /app
+RUN ln -s /app/dedupe.py /usr/local/bin/dedupe
 ADD entrypoint.sh /app
 WORKDIR /app
-ENTRYPOINT /app/entrypoint.sh
+CMD /app/entrypoint.sh
 
