@@ -17,6 +17,11 @@ docker run -it -e ES=locahost -e INDEX=my-index -e FIELD=id deric/es-dedupe:late
 You can either override Docker commad or use ENV variable to pass arguments.
 
 ## Usage
+Use `-h/--help` to see supported options:
+```
+docker run --rm deric/es-dedupe:latest dedupe --help
+```
+
 ```
 python -u dedupe.py -H localhost -P 9200 -i exact-index-name -f Uuid > es_dedupe.log
 ```

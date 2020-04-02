@@ -614,7 +614,7 @@ def print_stats(msg, stats, args):
 if (__name__ == "__main__"):
     import argparse
 
-    parser = argparse.ArgumentParser(description="Elasticsearch dupe deleter")
+    parser = argparse.ArgumentParser(description="Elastic duplicates deleter",add_help=True)
     parser.add_argument("-a", "--all",
                         action="store_true", dest="all", default=True,
                         help="All indexes from given date till today")
