@@ -1,6 +1,7 @@
 # ES-dedupe
 
 [![](https://images.microbadger.com/badges/version/deric/es-dedupe.svg)](https://microbadger.com/images/deric/es-dedupe)
+[![](https://images.microbadger.com/badges/image/deric/es-dedupe.svg)](https://microbadger.com/images/deric/es-dedupe)
 
 A tool for removing duplicated documents that are grouped by some unique field (e.g. `--field Uuid`). Removal process consists of two phases:
 
