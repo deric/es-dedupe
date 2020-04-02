@@ -4,7 +4,7 @@ REGISTRY ?= deric
 all: clean test
 
 build:
-	docker pull `head -n 1 Dockerfile | awk '{ print $$2 }'`
+	grep "^FROM" Dockerfile | awk '{ print $$2 }' | uniq | xargs -P2 -n1 docker pull
 	docker build -t $(NAME) .
 
 define RELEASE

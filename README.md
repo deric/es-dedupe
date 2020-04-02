@@ -1,5 +1,7 @@
 # ES-dedupe
 
+[![](https://images.microbadger.com/badges/version/deric/es-dedupe.svg)](https://microbadger.com/images/deric/es-dedupe)
+
 A tool for removing duplicated documents that are grouped by some unique field (e.g. `--field Uuid`). Removal process consists of two phases:
 
  1. Aggregate query find documents that have same `field` value and at least 2 occurences. One copy of such document is left in ES all other are deleted via Bulk API (almost all, usually - there's always some catch). We wait for index update after each `DELETE` operatation. Processed documents are logged into `/tmp/es_dedupe.log`.
@@ -9,7 +11,7 @@ A tool for removing duplicated documents that are grouped by some unique field (
 
 Running from Docker:
 ```
-docker run -it -e ES=locahost -e INDEX=my-index -e FIELD=id deric/es-dedupe
+docker run -it -e ES=locahost -e INDEX=my-index -e FIELD=id deric/es-dedupe:latest
 ```
 You can either override Docker commad or use ENV variable to pass arguments.
 
