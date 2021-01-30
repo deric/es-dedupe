@@ -269,7 +269,7 @@ def remove_duplicates(json, idxname, args):
     docs = []
     ids = []
     if (args.debug == True):
-        logme("## idxname {}: using json:\n{0}\n\n".format(idxname, pp.pformat(json, 4, -1)))
+        logme("## idxname {}: using json:\n{}\n\n".format(idxname, pp.pformat(json, 4, -1)))
 #{u'_shards': {u'failed': 0, u'skipped': 0, u'successful': 4, u'total': 4},
 # u'aggregations': {u'duplicateCount': {u'buckets': [{u'doc_count': 1170,
 #                                                     u'duplicateDocuments': {u'hits': {u'hits': [{u'_id': u'some-uuid-real-ly',

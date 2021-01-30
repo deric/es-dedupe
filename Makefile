@@ -23,7 +23,7 @@ release: build
 	$(call RELEASE,$(v))
 
 dev:
-	pip install -r requirements.txt -r requirements-dev.txt
+	pip3 install -r requirements.txt -r requirements-dev.txt
 
 # auto correct indentation issues
 fix:
