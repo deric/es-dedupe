@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # -*- coding: utf-8 -*-
 
@@ -24,7 +24,8 @@ from collections import defaultdict
 from datetime import timedelta
 from time import sleep
 
-
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 ## save our original index settings, so we can restore them after deleting duplicates
 idx2settings = {}
@@ -71,7 +72,7 @@ def run(args):
     idxlist = fetch_indexlist(args)
     indices = {}
     if (idxlist.__class__.__name__ != "dict"):
-        logme("ERROR - Could not fetch_indexlist from http://{}:{} (returned class-name is {})\n{}\n".format(args.host, args.port, idxlist.__class__.__name__, pp.pformat(idxlist, 4, -1)))
+        logme("ERROR - Could not fetch_indexlist from {}://{}:{} (returned class-name is {})\n{}\n".format(args.protocol, args.host, args.port, idxlist.__class__.__name__, pp.pformat(idxlist, 4, -1)))
         sys.exit(-1)
     if ('indices' in idxlist):
         for idxname in idxlist['indices']:
@@ -92,83 +93,97 @@ def run(args):
                 if args.verbose:
                     logme("# WARNING - Couldn't find settings for index '{0}'".format(idxname))
     logme("The following indices matched your name pattern {0} :\n{1}\n\n".format(idxlist_uri(args), pp.pformat(indices, 4, -1)))
+
+    if(args.multiple):
+        all = {}
+        indexList = ",".join(indices.keys())
+        if(args.all):
+            indexList = '{}{}*'.format(args.prefix, args.prefixseparator)
+        sizeSum = sum(indices.values())
+        all[indexList] = sizeSum
+        indices = all
+
     for idxname in indices:
+        done = False
         if (workisdone == False):
             logme('Current index index {}'.format(idxname))
         else:
             break
 
-        erroroccurred = False
+        while not done:    
+            erroroccurred = False
 
-        qs = time.time()
-        resp = fetch(idxname, args)
-        qe = time.time()
-        if (resp == "-1"):
-            logme("ERROR - fetch couldn't be successfully executed for idxname {}".format(idxname))
-            erroroccurred = True
+            qs = time.time()
+            resp = fetch(idxname, args)
+            qe = time.time()
+            if (resp == "-1"):
+                logme("ERROR - fetch couldn't be successfully executed for idxname {}".format(idxname))
+                erroroccurred = True
 
-        docs = -1
-        removed = 0
-        if (erroroccurred == False):
-            if (isinstance(resp, dict)) and ("aggregations" in resp):
-                docs = len(resp["aggregations"]["duplicateCount"]["buckets"])
-            else:
-                logme("ERROR - Unexpected response {}".format(resp))
-                workisdone = True
-            logme("ES query took {}, retrieved {} unique docs that have dupes".format(timedelta(seconds=(qe - qs)), docs))
-
-        if (docs >= 0):
-            bs = time.time()
-            # now update write to false if it is not, and return it to original after we are done.
-            if (args.noop == False):
-                skipremoval = False
-                if (idxname not in idx2settings):
-                    logme("WARNING - Couldn't find settings for index '{0}'".format(idxname))
-                else:
-                    if (('write' in idx2settings[idxname]) and (idx2settings[idxname]['write'] != "false")):
-                        if args.verbose:
-                            logme("# Index '{0}' is not writable in settings, updating blocks-write to false".format(idxname))
-                        if (set_index_writable(args, idxname, "false") == False):
-                            logme("WARNING - Index '{0}' could not be made writable. Skipping deleting.".format(idxname))
-                            skipremoval = True
-                        else:
-                            idx2settings[idxname]['_esdedup_changed_writeflag'] = True
-                if (skipremoval == False):
-                    cnt_removed = remove_duplicates(resp, idxname, args)
-                    if (cnt_removed == -1):
-                        logme("ERROR - remove_duplicates couldn't be successfully executed for idxname {}, resp {}".format(idxname, resp))
-                        erroroccurred = True
-                        cnt_removed = 0
-                        break
-                    removed = cnt_removed
-                    be = time.time()
-                    total += removed
-                    logme("Deleted {} duplicates, in total {:,}. Batch-searched in {}, Batch-removed in {}, overall running time {}".format(removed, total, timedelta(seconds=(be - qe)), timedelta(seconds=(be - start)), timedelta(seconds=(be - bs))))
-                    sleep(args.sleep)  # avoid flooding ES
-                    if os.path.isfile(args.log_agg):
-                        if args.no_check:
-                            logme("   Skipping ES consistency check.")
-                        else:
-                            cnt_removed = check_docs(args.log_agg, args)
-                            if (cnt_removed == -1):
-                                logme("WARNING - check_docs couldn't be successfully executed for log_agg {}".format(args.log_agg))
-                                erroroccurred = True
-                                removed = 0
-                                break
-                            removed = cnt_removed
-                        total += removed
-                        logme("     2ndChck removed {}, in total {:,}".format(removed, total))
-                        os.remove(args.log_agg)
-                if (('_esdedup_changed_writeflag' in idx2settings[idxname]) and (idx2settings[idxname]['_esdedup_changed_writeflag'] == True)):
-                    if (set_index_writable(args, idxname, idx2settings[idxname]['write']) == False):
-                        logme("WARNING - Index '{0}' writable setting could not be reset to {1}.".format(idxname, idx2settings[idxname]['write']))
-                    else:
-                        idx2settings[idxname]['_esdedup_changed_writeflag'] = False
-        if (removed == 0):
+            docs = -1
+            removed = 0
             if (erroroccurred == False):
-                continue  # continue with next index
-            else:
-                logme("ERROR - An error occurred with idxname {}".format(idxname))
+                if (isinstance(resp, dict)) and ("aggregations" in resp):
+                    docs = len(resp["aggregations"]["duplicateCount"]["buckets"])
+                else:
+                    logme("ERROR - Unexpected response {}".format(resp))
+                    workisdone = True
+                    done = True
+                logme("ES query took {}, retrieved {} unique docs that have dupes".format(timedelta(seconds=(qe - qs)), docs))
+
+            if (docs >= 0):
+                bs = time.time()
+                # now update write to false if it is not, and return it to original after we are done.
+                if (args.noop == False):
+                    skipremoval = False
+                    if (not args.multiple and idxname not in idx2settings):
+                        logme("WARNING - Couldn't find settings for index '{0}'".format(idxname))
+                    else:
+                        if (not args.multiple and ('write' in idx2settings[idxname]) and (idx2settings[idxname]['write'] != "false")):
+                            if args.verbose:
+                                logme("# Index '{0}' is not writable in settings, updating blocks-write to false".format(idxname))
+                            if (set_index_writable(args, idxname, "false") == False):
+                                logme("WARNING - Index '{0}' could not be made writable. Skipping deleting.".format(idxname))
+                                skipremoval = True
+                            else:
+                                idx2settings[idxname]['_esdedup_changed_writeflag'] = True
+                    if (skipremoval == False):
+                        cnt_removed = remove_duplicates(resp, idxname, args)
+                        if (cnt_removed == -1):
+                            logme("ERROR - remove_duplicates couldn't be successfully executed for idxname {}, resp {}".format(idxname, resp))
+                            erroroccurred = True
+                            cnt_removed = 0
+                            break
+                        removed = cnt_removed
+                        be = time.time()
+                        total += removed
+                        logme("Deleted {} duplicates, in total {:,}. Batch-searched in {}, Batch-removed in {}, overall running time {}".format(removed, total, timedelta(seconds=(be - qe)), timedelta(seconds=(be - bs)), timedelta(seconds=(be - start))))
+                        sleep(args.sleep)  # avoid flooding ES
+                        if os.path.isfile(args.log_agg):
+                            if args.no_check:
+                                logme("   Skipping ES consistency check.")
+                            else:
+                                cnt_removed = check_docs(args.log_agg, args)
+                                if (cnt_removed == -1):
+                                    logme("WARNING - check_docs couldn't be successfully executed for log_agg {}".format(args.log_agg))
+                                    erroroccurred = True
+                                    removed = 0
+                                    break
+                                removed = cnt_removed
+                                total += removed
+                                logme("     2ndChck removed {}, in total {:,}".format(removed, total))
+                            os.remove(args.log_agg)
+                    if (not args.multiple and ('_esdedup_changed_writeflag' in idx2settings[idxname]) and (idx2settings[idxname]['_esdedup_changed_writeflag'] == True)):
+                        if (set_index_writable(args, idxname, idx2settings[idxname]['write']) == False):
+                            logme("WARNING - Index '{0}' writable setting could not be reset to {1}.".format(idxname, idx2settings[idxname]['write']))
+                        else:
+                            idx2settings[idxname]['_esdedup_changed_writeflag'] = False
+            if (removed == 0):
+                done = True
+                if (erroroccurred == False):
+                    continue  # continue with next index
+                else:
+                    logme("ERROR - An error occurred with idxname {}".format(idxname))
 
     end = time.time()
     logme("== successfully completed dupe deletion. Took: {0}".format(timedelta(seconds=(end - start))))
@@ -176,7 +191,7 @@ def run(args):
 
 
 def es_uri(args):
-    return 'http://{0}:{1}'.format(args.host, args.port)
+    return '{0}://{1}:{2}'.format(args.protocol, args.host, args.port)
 
 
 def bulk_uri(args):
@@ -215,7 +230,9 @@ def fetch_indexlist(args):
         if args.verbose:
             logme("## GET {0}".format(uri))
             logme("##\tdata. {0}".format(json))
-        resp = requests.get(uri, data=json, headers=es_headers)
+        session = requests.Session()
+        session.verify = False            
+        resp = session.get(uri, data=json, headers=es_headers, verify = False)
         if args.debug:
             logme("## resp: {0}".format(resp.text))
         if (resp.status_code == 200):
@@ -236,12 +253,12 @@ def fetch(idxname, args):
     payload = {"size": 0,
                 "aggs": {
                     "duplicateCount": {"terms":
-                            {"field": args.field, "min_doc_count": 2, "size": args.batch},
+                            {"field": args.field, "min_doc_count": 2, "size": args.batch, "shard_size" : args.dupes },
                                 "aggs": {
                                     "duplicateDocuments":
                                     # TODO: _source can contain custom fields, when empty whole document is trasferred
                                     # which causes unnecessary traffic
-                                    {"top_hits": {"size": args.dupes, "_source": [args.field]}}
+                                    {"top_hits": { "_source": [args.field]}}
                                 }
                             }
                     }
@@ -287,15 +304,18 @@ def remove_duplicates(json, idxname, args):
         i = 0
         for dupl in bucket["duplicateDocuments"]["hits"]["hits"]:
             if (i > 0):
-                ids.append(dupl["_id"])
+                item = {}
+                item["_id"] = dupl["_id"]
+                item["_index"] = dupl["_index"]
+                ids.append(item)
             else:
                 if args.debug:
-                    logme("## idxname {}: skipping doc {0}".format(idxname, dupl["_id"]))
+                    logme("## idxname {}: skipping doc {}".format(dupl["_index"], dupl["_id"]))
             i += 1
 
     buf = StringIO()
     for i in ids:
-        add_to_delete_query(buf, idxname, args.doc_type, i)
+        add_to_delete_query(buf, i["_index"], args.doc_type, i["_id"])
     if args.debug:
         logme("## idxname {}, bulk_delete-query-buffer:\n{}\n\n".format(idxname, buf.getvalue()))
 
@@ -354,7 +374,9 @@ def bulk_remove(buf, args):
             logme("NOT using delete query: {}".format(buf.getvalue()))
             return 0
 
-        resp = requests.post(uri, data=buf.getvalue(), headers=es_headers)
+        session = requests.Session()
+        session.verify = False
+        resp = session.post(uri, data=buf.getvalue(), headers=es_headers, verify=False)
         if args.debug:
             logme("## resp: {0}".format(resp.text))
         if (resp.status_code == 200):
@@ -363,7 +385,7 @@ def bulk_remove(buf, args):
                 logme("got errors in r:\n{}\n\n".format(r))
             cnt = 0
             for item in r['items']:
-                if ('found' in item['delete']) and item['delete']['found']:
+                if ('result' in item['delete']) and item['delete']['result'] == 'deleted':
                     cnt += 1
                 else:
                     logme("    {}".format(item))
@@ -377,9 +399,6 @@ def bulk_remove(buf, args):
     # an error occurred!
     return -1
 
-
-
-
 def fetch_allsettings(args):
     global es_headers
     tmpidx2settings = {}
@@ -387,7 +406,9 @@ def fetch_allsettings(args):
         uri = allsettings_uri(args)
         if args.verbose:
             logme("# GET {}".format(uri))
-        resp = requests.get(uri, data={}, headers=es_headers)
+        session = requests.Session()
+        session.verify = False
+        resp = session.get(uri, data={}, headers=es_headers, verify = False)
         # {"indexname_109":{"settings":{"index":{"number_of_shards":"4","blocks":{"write":"false","metadata":"false","read":"false"},"provided_name":"indexname_109","creation_date":"1520121603118","analysis":{"analyzer":{"analyzer_keyword":{"filter":"lowercase","tokenizer":"keyword"}}},"number_of_replicas":"0","uuid":"some-uuid-really-now","version":{"created":"5060499"}}}}, ....}
         r = {}
         if args.debug:
@@ -430,7 +451,9 @@ def set_index_writable(args, idxname, flag):
         if args.verbose:
             logme("# idxname {0}: PUT {1}".format(idxname, uri))
             logme("#\tdata: {0}".format(json))
-        resp = requests.put(uri, data=json, headers=es_headers)
+        session = requests.Session()
+        session.verify = False            
+        resp = session.put(uri, data=json, headers=es_headers, verify = False)
         r = {}
         if args.debug:
             logme("## idxname {0}, resp: {1}".format(idxname, resp.text))
@@ -518,7 +541,9 @@ def msearch(query, args, stats, docs):
         to_del = StringIO()
         to_log = StringIO()
         while True:
-            resp = requests.get(uri, data=query, headers=es_headers)
+            session = requests.Session()
+            session.verify = False            
+            resp = requests.get(uri, data=query, headers=es_headers, verify = False)
             if args.debug:
                 logme("## resp: {0}".format(resp.text))
             if (resp.status_code == 200):
@@ -608,13 +633,19 @@ def print_stats(msg, stats, args):
         missing = stats[0]
     logme("{}. OK: {} ({:.2f}%) out of {}. Fixable: {}. Missing: {}".format(msg, ok, (ok/sum*100.0), sum, (sum-ok-missing), missing))
     if args.verbose:
-        logme("# stats: {}", stats)
+        logme("# stats: {}", " ".join(stats))
 
 
 if (__name__ == "__main__"):
     import argparse
 
-    parser = argparse.ArgumentParser(description="Elastic duplicates deleter",add_help=True)
+    parser = argparse.ArgumentParser(description="Elasticsearch dupe deleter")
+    parser.add_argument("--multiple",
+                        action="store_true", dest="multiple", default=False,
+                        help="Check in multiple indices")
+    parser.add_argument("--protocol",
+                        dest="protocol", default='http',
+                        help="Protocol: http or https")
     parser.add_argument("-a", "--all",
                         action="store_true", dest="all", default=True,
                         help="All indexes from given date till today")
