@@ -110,7 +110,7 @@ def run(args):
         else:
             break
 
-        while not done:    
+        while not done:
             erroroccurred = False
 
             qs = time.time()
@@ -231,7 +231,7 @@ def fetch_indexlist(args):
             logme("## GET {0}".format(uri))
             logme("##\tdata. {0}".format(json))
         session = requests.Session()
-        session.verify = False            
+        session.verify = False
         resp = session.get(uri, data=json, headers=es_headers, verify = False)
         if args.debug:
             logme("## resp: {0}".format(resp.text))
@@ -429,7 +429,7 @@ def fetch_allsettings(args):
             if (tmpblocks != None):
                 if (idxname not in tmpidx2settings):
                     tmpidx2settings[idxname] = copy.copy(tmpblocks)
-                
+
     except requests.exceptions.ConnectionError as e:
         logme("ERROR - connection failed, check --host argument and port. Is ES running on {0}?".format(es_uri(args)))
         logme(e)
@@ -452,7 +452,7 @@ def set_index_writable(args, idxname, flag):
             logme("# idxname {0}: PUT {1}".format(idxname, uri))
             logme("#\tdata: {0}".format(json))
         session = requests.Session()
-        session.verify = False            
+        session.verify = False
         resp = session.put(uri, data=json, headers=es_headers, verify = False)
         r = {}
         if args.debug:
@@ -542,7 +542,7 @@ def msearch(query, args, stats, docs):
         to_log = StringIO()
         while True:
             session = requests.Session()
-            session.verify = False            
+            session.verify = False
             resp = requests.get(uri, data=query, headers=es_headers, verify = False)
             if args.debug:
                 logme("## resp: {0}".format(resp.text))
