@@ -46,16 +46,18 @@ class Esdedupe:
 
     def report_memusage(self):
         process = psutil.Process(os.getpid())
-        rss = process.memory_info().rss / 1024 * 2
+        rss = process.memory_info().rss
         self.log.info("Memory usage: {}".format(self.bytes_fmt(rss)))
 
     def run(self, args):
-        global pp, idx2settings, indices, re_indexexclude
-
         start = time.time()
         total = 0
 
-        if (args.index != ""):      args.all = False            # if indexname specifically was set, do not do --all mode
+        if args.noop:
+            self.log.info("Running in NOOP mode, no document will be deleted.")
+
+        if (args.index != ""):
+            args.all = False  # if indexname specifically was set, do not do --all mode
 
 
         es = Elasticsearch([args.host],
@@ -63,7 +65,7 @@ class Esdedupe:
             )
 
         resp = es.info()
-        self.log.info("elastic: {}, version: {}".format(resp['cluster_name'],resp['version']['number']))
+        self.log.info("elastic: {}, host: {}, version: {}".format(resp['cluster_name'], args.host, resp['version']['number']))
 
         docs_hash = {}
 
