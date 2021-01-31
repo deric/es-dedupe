@@ -99,6 +99,9 @@ class Esdedupe:
                 else:
                     self.delete_duplicates(docs_hash, index, es, args, dupl)
 
+        end = time.time()
+        self.log.info("Successfully completed duplicates removal. Took: {0}".format(timedelta(seconds=(end - start))))
+
 
     def print_duplicates(self, docs_hash, index, es, args):
         for hashval, ids in docs_hash.items():
