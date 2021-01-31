@@ -46,7 +46,7 @@ class Esdedupe:
     def report_memusage(self):
         process = psutil.Process(os.getpid())
         rss = process.memory_info().rss / 1024 * 2
-        self.log.info("Memory usage: {}".format(bytes_fmt(rss)))
+        self.log.info("Memory usage: {}".format(self.bytes_fmt(rss)))
 
     def run(self, args):
         global pp, idx2settings, indices, re_indexexclude
@@ -73,6 +73,7 @@ class Esdedupe:
         if args.index != "":
             index = args.index
             i = 0
+            self.log.info("Building documents mapping on index: {}, batch size: {}".format(index, args.batch))
             for hit in helpers.scan(es, index=index, size=args.batch):
                 self.build_index(docs_hash, unique_fields, hit)
                 i += 1
