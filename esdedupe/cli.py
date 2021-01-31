@@ -15,7 +15,7 @@ class ArgumentParser(_Base):
                             action="store_true", dest="all", default=True,
                             help="All indexes from given date till today")
         self.add_argument("-b", "--batch",
-                            dest="batch", default=10, type=int,
+                            dest="batch", default=1000, type=int,
                             help="Batch size - how many documents are retrieved using one request")
         self.add_argument("-m", "--max_dupes",
                             dest="dupes", default=10, type=int,
@@ -47,6 +47,15 @@ class ArgumentParser(_Base):
         self.add_argument("-t", "--doc_type", dest="doc_type",
                             default=None,
                             help="ES document type")
+        self.add_argument("--timestamp", dest="timestamp",
+                            default=None,
+                            help="Timestamp field")
+        self.add_argument("--since", dest="since",
+                            default=None,
+                            help="Search from given timestamp")
+        self.add_argument("--until", dest="until",
+                            default=None,
+                            help="Search until given timestamp")
         self.add_argument("-v", "--verbose",
                             action="store_true", dest="verbose",
                             default=False,

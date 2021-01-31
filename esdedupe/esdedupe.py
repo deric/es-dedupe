@@ -15,6 +15,7 @@ from collections import deque
 from elasticsearch import Elasticsearch, helpers
 from elasticsearch.helpers import parallel_bulk
 from logging import getLogger
+from datetime import timedelta
 
 
 class Esdedupe:
@@ -77,7 +78,7 @@ class Esdedupe:
             index = args.index
             i = 0
             self.log.info("Building documents mapping on index: {}, batch size: {}".format(index, args.batch))
-            for hit in helpers.scan(es, index=index, size=args.batch):
+            for hit in helpers.scan(es, index=index, size=args.batch, query=self.es_query(args)):
                 self.build_index(docs_hash, unique_fields, hit)
                 i += 1
                 if args.verbose:
@@ -89,7 +90,7 @@ class Esdedupe:
                 self.log.info("No duplicates found")
             else:
                 total = len(docs_hash)
-                self.log.info("Found {:0,} duplicates out of {:0,} docs, unique documents: {:0,} ({}% duplicates)".format(dupl, dupl+total, total, dupl/(dupl+total)*100))
+                self.log.info("Found {:0,} duplicates out of {:0,} docs, unique documents: {:0,} ({:.1f}% duplicates)".format(dupl, dupl+total, total, dupl/(dupl+total)*100))
 
                 if args.log_dupl:
                     self.save_documents_mapping(docs_hash, args)
@@ -102,6 +103,25 @@ class Esdedupe:
         end = time.time()
         self.log.info("Successfully completed duplicates removal. Took: {0}".format(timedelta(seconds=(end - start))))
 
+    def es_query(self, args):
+        if args.timestamp:
+            filter = {"format": "strict_date_optional_time"}
+            if args.since:
+                filter['gte'] = args.since
+            if args.until:
+                filter['lte'] = args.until
+            query = {
+              "filter": [
+                {
+                  "range": {
+                    args.timestamp: filter
+                  }
+                }
+              ]
+            }
+            return query
+        else:
+            {}
 
     def print_duplicates(self, docs_hash, index, es, args):
         for hashval, ids in docs_hash.items():
@@ -109,7 +129,7 @@ class Esdedupe:
             # Get the documents that have mapped to the current hasval
             matching_docs = es.mget(index=index, body={"ids": ids})
             for doc in matching_docs['docs']:
-                print("doc=%s\n" % doc)
+                print("doc=%s" % doc)
 
     def delete_duplicates(self, docs_hash, index, es, args, duplicates):
         progress = tqdm.tqdm(unit="docs", total=duplicates)
