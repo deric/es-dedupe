@@ -649,7 +649,7 @@ if (__name__ == "__main__"):
                         default=9200, type=int,
                         help="Elasticsearch port", metavar="port")
     parser.add_argument("-t", "--doc_type", dest="doc_type",
-                        default="nginx.access",
+                        default="_doc",
                         help="ES document type")
     parser.add_argument("-v", "--verbose",
                         action="store_true", dest="verbose",
