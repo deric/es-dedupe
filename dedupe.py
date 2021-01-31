@@ -250,7 +250,7 @@ def fetch(idxname, args):
         json = ujson.dumps(payload)
         if args.verbose:
             logme("# idxname {0}: POST {1}".format(idxname, uri))
-            logme("#\tdata: {0}".format(json))
+            logme("#\tquery: {0}".format(json))
         resp = requests.post(uri, data=json, headers=es_headers)
         if args.debug:
             logme("## idxname {0}, resp: {1}".format(idxname, resp.text))
@@ -429,7 +429,7 @@ def set_index_writable(args, idxname, flag):
         json = ujson.dumps(payload)
         if args.verbose:
             logme("# idxname {0}: PUT {1}".format(idxname, uri))
-            logme("#\tdata: {0}".format(json))
+            logme("#\tquery: {0}".format(json))
         resp = requests.put(uri, data=json, headers=es_headers)
         r = {}
         if args.debug:
