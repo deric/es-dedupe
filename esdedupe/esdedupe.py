@@ -143,10 +143,9 @@ class Esdedupe:
           size = len(ids)
           if size > 1:
             duplicates += size - 1
-        self.log.info("Found: {} dulpicates".format(duplicates))
         return duplicates
 
     def save_documents_mapping(self, docs_hash, args):
         self.log.info("Storing documents mapping into: {}".format(args.log_dupl))
-        with open(args.log_dupl, "wb") as ujson_file:
+        with open(args.log_dupl, "w", encoding="utf8") as ujson_file:
             ujson.dump(docs_hash, ujson_file)
