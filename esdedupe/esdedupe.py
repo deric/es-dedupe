@@ -111,13 +111,17 @@ class Esdedupe:
             if args.until:
                 filter['lte'] = args.until
             query = {
-              "filter": [
-                {
-                  "range": {
-                    args.timestamp: filter
-                  }
+              "query": {
+                "bool": {
+                  "filter": [
+                    {
+                      "range": {
+                        args.timestamp: filter
+                      }
+                    }
+                  ]
                 }
-              ]
+              }
             }
             return query
         else:
