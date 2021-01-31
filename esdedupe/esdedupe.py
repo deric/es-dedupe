@@ -90,7 +90,7 @@ class Esdedupe:
                 self.log.info("Found {} duplicates out of {} docs, unique documents: {} ({}% duplicates)".format(dupl, dupl+total, total, dupl/(dupl+total)*100))
 
                 if args.log_dupl:
-                    save_documents_mapping(docs_hash, args)
+                    self.save_documents_mapping(docs_hash, args)
                 if args.noop:
                     if args.verbose:
                         self.print_duplicates(docs_hash, index, es, args)
