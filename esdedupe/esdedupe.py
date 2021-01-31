@@ -6,9 +6,10 @@ import hashlib
 import inspect
 import os.path
 import psutil
+import re
 import time
 import tqdm
-import re
+import ujson
 from collections import deque
 
 from elasticsearch import Elasticsearch, helpers
@@ -87,8 +88,12 @@ class Esdedupe:
             else:
                 total = len(docs_hash)
                 self.log.info("Found {} duplicates out of {} docs, unique documents: {} ({}% duplicates)".format(dupl, dupl+total, total, dupl/(dupl+total)*100))
+
+                if args.log_dupl:
+                    save_documents_mapping(docs_hash, args)
                 if args.noop:
-                    self.print_duplicates(docs_hash, index, es, args)
+                    if args.verbose:
+                        self.print_duplicates(docs_hash, index, es, args)
                 else:
                     self.delete_duplicates(docs_hash, index, es, args, dupl)
 
@@ -140,3 +145,8 @@ class Esdedupe:
             duplicates += size - 1
         self.log.info("Found: {} dulpicates".format(duplicates))
         return duplicates
+
+    def save_documents_mapping(self, docs_hash, args):
+        self.log.info("Storing documents mapping into: {}".format(args.log_dupl))
+        with open(args.log_dupl, "wb") as ujson_file:
+            ujson.dump(docs_hash, ujson_file)

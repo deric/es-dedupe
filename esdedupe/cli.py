@@ -59,9 +59,9 @@ class ArgumentParser(_Base):
                             action="store_true", dest="no_check",
                             default=False,
                             help="Disable check & remove if duplicities found after with standard search query")
-        self.add_argument("--log_agg", dest="log_agg",
-                            default="es_dedupe.log",
-                            help="Logfile for partially deleted documents (documents found by aggregate queries)")
+        self.add_argument("--log_dupl", dest="log_dupl",
+                            default=None,
+                            help="File to store duplicates mapping in JSON format")
         self.add_argument("--log_done", dest="log_done",
                             default="es_dedupe.done",
                             help="Logfile containing all document IDs that remained in ES")

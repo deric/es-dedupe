@@ -1,3 +1,4 @@
+ujson
 tqdm
 psutil
 elasticsearch
