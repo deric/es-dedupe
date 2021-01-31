@@ -82,14 +82,14 @@ class Esdedupe:
                 i += 1
                 if args.verbose:
                     if (i % 1000000 == 0):
-                        self.log.info("Scanned {} unique documents".format(len(docs_hash)))
+                        self.log.info("Scanned {:0,} unique documents".format(len(docs_hash)))
                         self.report_memusage()
             dupl = self.count_duplicates(docs_hash)
             if dupl == 0:
                 self.log.info("No duplicates found")
             else:
                 total = len(docs_hash)
-                self.log.info("Found {} duplicates out of {} docs, unique documents: {} ({}% duplicates)".format(dupl, dupl+total, total, dupl/(dupl+total)*100))
+                self.log.info("Found {:0,} duplicates out of {:0,} docs, unique documents: {:0,} ({}% duplicates)".format(dupl, dupl+total, total, dupl/(dupl+total)*100))
 
                 if args.log_dupl:
                     self.save_documents_mapping(docs_hash, args)
