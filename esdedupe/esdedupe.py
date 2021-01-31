@@ -24,14 +24,15 @@ class Esdedupe:
 
     # Process documents returned by the current search/scroll
     def build_index(self, docs_hash, unique_fields, hit):
-
-        combined_key = ""
-        for mykey in unique_fields:
-            combined_key += str(hit['_source'][mykey])
-
+        hashval = None
         _id = hit["_id"]
-
-        hashval = hashlib.md5(combined_key.encode('utf-8')).digest()
+        if len(unique_fields) > 1:
+            combined_key = ""
+            for field in unique_fields:
+                combined_key += str(hit['_source'][field])
+            hashval = hashlib.md5(combined_key.encode('utf-8')).digest()
+        else:
+            hashval = str(hit['_source'][unique_fields[0]])
 
         docs_hash.setdefault(hashval, []).append(_id)
 
