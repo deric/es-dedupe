@@ -6,4 +6,4 @@ import logging
 from .esdedupe import Esdedupe
 
 #logger = logging.getLogger("elasticsearch")
-#logger.addHandler(logging.NullHandler())
+# logger.addHandler(logging.NullHandler())

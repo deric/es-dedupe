@@ -20,7 +20,6 @@ from datetime import timedelta
 
 class Esdedupe:
 
-
     def __init__(self):
         self.log = getLogger('esdedupe')
 
@@ -39,7 +38,7 @@ class Esdedupe:
         docs_hash.setdefault(hashval, []).append(_id)
 
     def bytes_fmt(self, num, suffix='B'):
-        for unit in ['','K','M','G','T','P','E','Z']:
+        for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
             if abs(num) < 1024.0:
                 return "%3.1f%s%s" % (num, unit, suffix)
             num /= 1024.0
@@ -60,13 +59,13 @@ class Esdedupe:
         if (args.index != ""):
             args.all = False  # if indexname specifically was set, do not do --all mode
 
-
         es = Elasticsearch([args.host],
-            port=args.port
-            )
+                           port=args.port
+                           )
 
         resp = es.info()
-        self.log.info("elastic: {}, host: {}, version: {}".format(resp['cluster_name'], args.host, resp['version']['number']))
+        self.log.info("elastic: {}, host: {}, version: {}".format(
+            resp['cluster_name'], args.host, resp['version']['number']))
 
         docs_hash = {}
         dupl = 0
@@ -78,20 +77,23 @@ class Esdedupe:
         if args.index != "":
             index = args.index
             i = 0
-            self.log.info("Building documents mapping on index: {}, batch size: {}".format(index, args.batch))
+            self.log.info("Building documents mapping on index: {}, batch size: {}".format(
+                index, args.batch))
             for hit in helpers.scan(es, index=index, size=args.batch, query=self.es_query(args)):
                 self.build_index(docs_hash, unique_fields, hit)
                 i += 1
                 if args.verbose:
                     if (i % 1000000 == 0):
-                        self.log.info("Scanned {:0,} unique documents".format(len(docs_hash)))
+                        self.log.info(
+                            "Scanned {:0,} unique documents".format(len(docs_hash)))
                         self.report_memusage()
             dupl = self.count_duplicates(docs_hash)
             if dupl == 0:
                 self.log.info("No duplicates found")
             else:
                 total = len(docs_hash)
-                self.log.info("Found {:0,} duplicates out of {:0,} docs, unique documents: {:0,} ({:.1f}% duplicates)".format(dupl, dupl+total, total, dupl/(dupl+total)*100))
+                self.log.info("Found {:0,} duplicates out of {:0,} docs, unique documents: {:0,} ({:.1f}% duplicates)".format(
+                    dupl, dupl+total, total, dupl/(dupl+total)*100))
 
                 if args.log_dupl:
                     self.save_documents_mapping(docs_hash, args)
@@ -103,17 +105,20 @@ class Esdedupe:
                         self.parallel_delete(docs_hash, index, es, args, dupl)
                     else:
                         # safer option, should avoid overloading elastic
-                        self.sequential_delete(docs_hash, index, es, args, dupl)
-
+                        self.sequential_delete(
+                            docs_hash, index, es, args, dupl)
 
         end = time.time()
         if args.noop:
-            self.log.info("Simulation finished. Took: {0}".format(timedelta(seconds=(end - start))))
+            self.log.info("Simulation finished. Took: {0}".format(
+                timedelta(seconds=(end - start))))
         else:
             if dupl > 0:
-                self.log.info("Successfully completed duplicates removal. Took: {0}".format(timedelta(seconds=(end - start))))
+                self.log.info("Successfully completed duplicates removal. Took: {0}".format(
+                    timedelta(seconds=(end - start))))
             else:
-                self.log.info("Total time: {0}".format(timedelta(seconds=(end - start))))
+                self.log.info("Total time: {0}".format(
+                    timedelta(seconds=(end - start))))
 
     def es_query(self, args):
         if args.timestamp:
@@ -123,17 +128,17 @@ class Esdedupe:
             if args.until:
                 filter['lte'] = args.until
             query = {
-              "query": {
-                "bool": {
-                  "filter": [
-                    {
-                      "range": {
-                        args.timestamp: filter
-                      }
+                "query": {
+                    "bool": {
+                        "filter": [
+                            {
+                                "range": {
+                                    args.timestamp: filter
+                                }
+                            }
+                        ]
                     }
-                  ]
                 }
-              }
             }
             return query
         else:
@@ -141,11 +146,11 @@ class Esdedupe:
 
     def print_duplicates(self, docs_hash, index, es, args):
         for hashval, ids in docs_hash.items():
-          if len(ids) > 1:
-            # Get the documents that have mapped to the current hasval
-            matching_docs = es.mget(index=index, body={"ids": ids})
-            for doc in matching_docs['docs']:
-                print("doc=%s" % doc)
+            if len(ids) > 1:
+                # Get the documents that have mapped to the current hasval
+                matching_docs = es.mget(index=index, body={"ids": ids})
+                for doc in matching_docs['docs']:
+                    print("doc=%s" % doc)
 
     # For catching Elasticsearch exceptions
     def wrapper(gen):
@@ -166,10 +171,11 @@ class Esdedupe:
                 successes += info['delete']['_shards']['successful']
             else:
                 print('Doc failed', info)
-            #print(info)
+            # print(info)
             progress.update(1)
 
-        self.log.info("Deleted {:0,}/{:0,} documents".format(successes, duplicates))
+        self.log.info(
+            "Deleted {:0,}/{:0,} documents".format(successes, duplicates))
 
     def parallel_delete(self, docs_hash, index, es, args, duplicates):
         progress = tqdm.tqdm(unit="docs", total=duplicates)
@@ -180,36 +186,38 @@ class Esdedupe:
                 successes += info['delete']['_shards']['successful']
             else:
                 print('Doc failed', info)
-            #print(info)
+            # print(info)
             progress.update(1)
 
-        self.log.info("Deleted {:0,}/{:0,} documents".format(successes, duplicates))
+        self.log.info(
+            "Deleted {:0,}/{:0,} documents".format(successes, duplicates))
 
     def delete_iterator(self, docs_hash, index, args):
         for hashval, ids in docs_hash.items():
-          if len(ids) > 1:
-            i = 0
-            for doc_id in ids:
-                if i > 0: # skip first document
-                    doc = {
-                        '_op_type': 'delete',
-                        '_index': index,
-                        '_id': doc_id
-                    }
-                    if args.doc_type:
-                        doc['_type'] = args.doc_type
-                    yield doc
-                i += 1
+            if len(ids) > 1:
+                i = 0
+                for doc_id in ids:
+                    if i > 0:  # skip first document
+                        doc = {
+                            '_op_type': 'delete',
+                            '_index': index,
+                            '_id': doc_id
+                        }
+                        if args.doc_type:
+                            doc['_type'] = args.doc_type
+                        yield doc
+                    i += 1
 
     def count_duplicates(self, docs_hash):
         duplicates = 0
         for hashval, ids in docs_hash.items():
-          size = len(ids)
-          if size > 1:
-            duplicates += size - 1
+            size = len(ids)
+            if size > 1:
+                duplicates += size - 1
         return duplicates
 
     def save_documents_mapping(self, docs_hash, args):
-        self.log.info("Storing documents mapping into: {}".format(args.log_dupl))
+        self.log.info(
+            "Storing documents mapping into: {}".format(args.log_dupl))
         with open(args.log_dupl, "w", encoding="utf8") as ujson_file:
             ujson.dump(docs_hash, ujson_file)

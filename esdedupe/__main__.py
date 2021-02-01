@@ -14,6 +14,7 @@ from sys import stderr, stdout
 from .esdedupe import Esdedupe
 from .cli import ArgumentParser
 
+
 def setup_logging(args):
     fmt = '%(asctime)s [%(thread)d] %(levelname)-5s %(name)s %(message)s'
     formatter = Formatter(fmt=fmt, datefmt='%Y-%m-%dT%H:%M:%S ')
@@ -36,9 +37,10 @@ def setup_logging(args):
     # elasticsearch scroll output is too verbose
     # getLogger('elasticsearch').level = WARN
 
+
 def main():
     parser = ArgumentParser(description="Elastic duplicates deleter",
-        add_help=True, prog='esdedupe')
+                            add_help=True, prog='esdedupe')
     args = parser.parse_args(sys.argv[1:])
     setup_logging(args)
     try:
@@ -50,6 +52,7 @@ def main():
             sys.exit(0)
         except SystemExit:
             os._exit(0)
+
 
 if (__name__ == "__main__"):
     main()
