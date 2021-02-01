@@ -17,10 +17,7 @@ class ArgumentParser(_Base):
                           help="All indexes from given date till today")
         self.add_argument("-b", "--batch",
                           dest="batch", default=1000, type=int,
-                          help="Batch size - how many documents are retrieved using one request")
-        self.add_argument("-m", "--max_dupes",
-                          dest="dupes", default=10, type=int,
-                          help="Dupes size - how many duplicates per document are retrieved")
+                          help="Number of documents retrieved using one search request")
         self.add_argument("-H", "--host", dest="host",
                           default="localhost",
                           help="Elasticsearch hostname", metavar="host")
@@ -64,6 +61,10 @@ class ArgumentParser(_Base):
                           action="store_true", dest="verbose",
                           default=False,
                           help="enable verbose logging")
+        self.add_argument("--fail_fast",
+                          action="store_true", dest="fail_fast",
+                          default=False,
+                          help="Exit on exception from Elasticsearch")
         self.add_argument("-r", "--max_retries",
                           dest="max_retries", default=3, type=int,
                           help="Maximum retries for rejected bulk delete")
@@ -74,7 +75,7 @@ class ArgumentParser(_Base):
                           default="10m",
                           help="Specify how long a consistent view of the index should be maintained for scrolled search")
         self.add_argument("--request_timeout",
-                          dest="request_timeout", default=30, type=int,
+                          dest="request_timeout", default=60, type=int,
                           help="Elasticsearch timeout in seconds")
         self.add_argument("-d", "--debug",
                           action="store_true", dest="debug",

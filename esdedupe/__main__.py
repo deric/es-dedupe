@@ -35,7 +35,7 @@ def setup_logging(args):
     logger.level = DEBUG if args.debug else INFO
 
     # elasticsearch scroll output is too verbose
-    # getLogger('elasticsearch').level = WARN
+    getLogger('elasticsearch').level = WARN
 
 
 def main():

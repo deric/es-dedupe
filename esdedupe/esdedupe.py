@@ -167,7 +167,9 @@ class Esdedupe:
         successes = 0
 
         for success, info in self.wrapper(streaming_bulk(es, self.delete_iterator(docs_hash, index, args),
-                                                         max_retries=args.max_retries, initial_backoff=args.initial_backoff, request_timeout=args.request_timeout)):
+                                                         max_retries=args.max_retries, initial_backoff=args.initial_backoff,
+                                                         request_timeout=args.request_timeout, chunk_size=args.flush,
+                                                         raise_on_exception=args.fail_fast)):
             if success:
                 successes += info['delete']['_shards']['successful']
             else:
@@ -183,7 +185,8 @@ class Esdedupe:
         successes = 0
 
         for success, info in self.wrapper(parallel_bulk(es, self.delete_iterator(docs_hash, index, args),
-                                                        thread_count=args.threads, request_timeout=args.request_timeout)):
+                                                        thread_count=args.threads, request_timeout=args.request_timeout,
+                                                        chunk_size=args.flush, raise_on_exception=args.fail_fast)):
             if success:
                 successes += info['delete']['_shards']['successful']
             else:
