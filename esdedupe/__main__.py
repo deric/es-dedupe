@@ -34,10 +34,11 @@ def setup_logging(args):
     logger.level = DEBUG if args.debug else INFO
 
     # elasticsearch scroll output is too verbose
-    getLogger('elasticsearch').level = WARN
+    # getLogger('elasticsearch').level = WARN
 
 def main():
-    parser = ArgumentParser(description="Elastic duplicates deleter",add_help=True,prog='esdedupe')
+    parser = ArgumentParser(description="Elastic duplicates deleter",
+        add_help=True, prog='esdedupe')
     args = parser.parse_args(sys.argv[1:])
     setup_logging(args)
     try:

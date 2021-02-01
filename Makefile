@@ -27,10 +27,10 @@ dev:
 
 # auto correct indentation issues
 fix:
-	autopep8 dedupe.py --recursive --in-place
+	autopep8 esdedupe/ --recursive --in-place
 
 lint:
-	flake8 dedupe.py
+	flake8 esdedupe/
 
 test:
 	pytest --pep8 --cov -s

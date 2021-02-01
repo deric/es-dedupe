@@ -6,7 +6,6 @@ import hashlib
 import inspect
 import os.path
 import psutil
-import re
 import time
 import tqdm
 import ujson
@@ -70,6 +69,7 @@ class Esdedupe:
         self.log.info("elastic: {}, host: {}, version: {}".format(resp['cluster_name'], args.host, resp['version']['number']))
 
         docs_hash = {}
+        dupl = 0
 
         # one or more fields to form a unique key
         unique_fields = args.field.split(',')
@@ -107,7 +107,13 @@ class Esdedupe:
 
 
         end = time.time()
-        self.log.info("Successfully completed duplicates removal. Took: {0}".format(timedelta(seconds=(end - start))))
+        if args.noop:
+            self.log.info("Simulation finished. Took: {0}".format(timedelta(seconds=(end - start))))
+        else:
+            if dupl > 0:
+                self.log.info("Successfully completed duplicates removal. Took: {0}".format(timedelta(seconds=(end - start))))
+            else:
+                self.log.info("Total time: {0}".format(timedelta(seconds=(end - start))))
 
     def es_query(self, args):
         if args.timestamp:
@@ -141,23 +147,35 @@ class Esdedupe:
             for doc in matching_docs['docs']:
                 print("doc=%s" % doc)
 
+    # For catching Elasticsearch exceptions
+    def wrapper(gen):
+        while True:
+            try:
+                yield next(gen)
+            except StopIteration:
+                break
+            except Exception as e:
+                self.log.error(e)
+
     def sequential_delete(self, docs_hash, index, es, args, duplicates):
         progress = tqdm.tqdm(unit="docs", total=duplicates)
         successes = 0
 
-        for success, info in streaming_bulk(es, self.delete_iterator(docs_hash, index, args), max_retries=args.max_retries, initial_backoff=args.initial_backoff):
+        for success, info in self.wrapper(streaming_bulk(es, self.delete_iterator(docs_hash, index, args), max_retries=args.max_retries, initial_backoff=args.initial_backoff)):
             if success:
                 successes += info['delete']['_shards']['successful']
             else:
                 print('Doc failed', info)
             #print(info)
             progress.update(1)
+
+        self.log.info("Deleted {:0,}/{:0,} documents".format(successes, duplicates))
 
     def parallel_delete(self, docs_hash, index, es, args, duplicates):
         progress = tqdm.tqdm(unit="docs", total=duplicates)
         successes = 0
 
-        for success, info in parallel_bulk(es, self.delete_iterator(docs_hash, index, args), thread_count=args.threads):
+        for success, info in self.wrapper(parallel_bulk(es, self.delete_iterator(docs_hash, index, args), thread_count=args.threads)):
             if success:
                 successes += info['delete']['_shards']['successful']
             else:
@@ -165,8 +183,7 @@ class Esdedupe:
             #print(info)
             progress.update(1)
 
-
-        print("Deleted %d/%d documents" % (successes, duplicates))
+        self.log.info("Deleted {:0,}/{:0,} documents".format(successes, duplicates))
 
     def delete_iterator(self, docs_hash, index, args):
         for hashval, ids in docs_hash.items():
