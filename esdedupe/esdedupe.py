@@ -153,7 +153,7 @@ class Esdedupe:
                     print("doc=%s" % doc)
 
     # For catching Elasticsearch exceptions
-    def wrapper(gen):
+    def wrapper(self, gen):
         while True:
             try:
                 yield next(gen)
