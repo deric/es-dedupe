@@ -14,6 +14,7 @@ from collections import deque
 
 from elasticsearch import Elasticsearch, helpers
 from elasticsearch.helpers import parallel_bulk
+from elasticsearch.helpers import streaming_bulk
 from logging import getLogger
 from datetime import timedelta
 
@@ -98,7 +99,12 @@ class Esdedupe:
                     if args.verbose:
                         self.print_duplicates(docs_hash, index, es, args)
                 else:
-                    self.delete_duplicates(docs_hash, index, es, args, dupl)
+                    if args.threads > 1:
+                        self.parallel_delete(docs_hash, index, es, args, dupl)
+                    else:
+                        # safer option, should avoid overloading elastic
+                        self.sequential_delete(docs_hash, index, es, args, dupl)
+
 
         end = time.time()
         self.log.info("Successfully completed duplicates removal. Took: {0}".format(timedelta(seconds=(end - start))))
@@ -135,11 +141,23 @@ class Esdedupe:
             for doc in matching_docs['docs']:
                 print("doc=%s" % doc)
 
-    def delete_duplicates(self, docs_hash, index, es, args, duplicates):
+    def sequential_delete(self, docs_hash, index, es, args, duplicates):
         progress = tqdm.tqdm(unit="docs", total=duplicates)
         successes = 0
 
-        for success, info in parallel_bulk(es, self.delete_iterator(docs_hash, index, args)):
+        for success, info in streaming_bulk(es, self.delete_iterator(docs_hash, index, args), max_retries=args.max_retries, initial_backoff=args.initial_backoff):
+            if success:
+                successes += info['delete']['_shards']['successful']
+            else:
+                print('Doc failed', info)
+            #print(info)
+            progress.update(1)
+
+    def parallel_delete(self, docs_hash, index, es, args, duplicates):
+        progress = tqdm.tqdm(unit="docs", total=duplicates)
+        successes = 0
+
+        for success, info in parallel_bulk(es, self.delete_iterator(docs_hash, index, args), thread_count=args.threads):
             if success:
                 successes += info['delete']['_shards']['successful']
             else:

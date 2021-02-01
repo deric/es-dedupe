@@ -35,6 +35,9 @@ class ArgumentParser(_Base):
         self.add_argument("-I", "--indexexclude", dest="indexexclude",
                             default="",
                             help="Elasticsearch regular expression of index name that is to be excluded, only useful with --all", metavar="indexexclude-regexp")
+        self.add_argument("-j", "--threads",
+                            dest="threads", default=1, type=int,
+                            help="Number of threads to execute delete queries, when 1 seqential delete will be used. Note parallel delete can easily overload cluster")
         self.add_argument("-p", "--prefix", dest="prefix",
                             default="*",
                             help="Elasticsearch index prefix", metavar="prefix")
@@ -60,6 +63,12 @@ class ArgumentParser(_Base):
                             action="store_true", dest="verbose",
                             default=False,
                             help="enable verbose logging")
+        self.add_argument("-r", "--max_retries",
+                            dest="max_retries", default=3, type=int,
+                            help="Maximum retries for rejected bulk delete")
+        self.add_argument("--initial_backoff",
+                            dest="initial_backoff", default=2, type=int,
+                            help="Number of seconds we should wait before the first retry. Any subsequent retries will be powers of initial_backoff * 2**retry_number")
         self.add_argument("-d", "--debug",
                             action="store_true", dest="debug",
                             default=False,
@@ -76,9 +85,6 @@ class ArgumentParser(_Base):
                             help="Logfile containing all document IDs that remained in ES")
         self.add_argument("--check_log", dest="check",
                             help="Verify that documents has been deleted")
-        self.add_argument("--sleep",
-                            dest="sleep", default=60, type=int,
-                            help="Sleep in seconds after each ES query (in order to avoid cluster overloading)")
         self.add_argument("-n", "--noop",
                             action="store_true", dest="noop",
                             default=False,
