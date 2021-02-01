@@ -70,6 +70,12 @@ class ArgumentParser(_Base):
         self.add_argument("--initial_backoff",
                           dest="initial_backoff", default=2, type=int,
                           help="Number of seconds we should wait before the first retry. Any subsequent retries will be powers of initial_backoff * 2**retry_number")
+        self.add_argument("--scroll", dest="scroll",
+                          default="10m",
+                          help="Specify how long a consistent view of the index should be maintained for scrolled search")
+        self.add_argument("--request_timeout",
+                          dest="request_timeout", default=30, type=int,
+                          help="Elasticsearch timeout in seconds")
         self.add_argument("-d", "--debug",
                           action="store_true", dest="debug",
                           default=False,

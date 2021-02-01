@@ -79,7 +79,7 @@ class Esdedupe:
             i = 0
             self.log.info("Building documents mapping on index: {}, batch size: {}".format(
                 index, args.batch))
-            for hit in helpers.scan(es, index=index, size=args.batch, query=self.es_query(args)):
+            for hit in helpers.scan(es, index=index, size=args.batch, query=self.es_query(args), scroll=args.scroll):
                 self.build_index(docs_hash, unique_fields, hit)
                 i += 1
                 if args.verbose:
@@ -166,7 +166,8 @@ class Esdedupe:
         progress = tqdm.tqdm(unit="docs", total=duplicates)
         successes = 0
 
-        for success, info in self.wrapper(streaming_bulk(es, self.delete_iterator(docs_hash, index, args), max_retries=args.max_retries, initial_backoff=args.initial_backoff)):
+        for success, info in self.wrapper(streaming_bulk(es, self.delete_iterator(docs_hash, index, args),
+                                                         max_retries=args.max_retries, initial_backoff=args.initial_backoff, request_timeout=args.request_timeout)):
             if success:
                 successes += info['delete']['_shards']['successful']
             else:
@@ -181,7 +182,8 @@ class Esdedupe:
         progress = tqdm.tqdm(unit="docs", total=duplicates)
         successes = 0
 
-        for success, info in self.wrapper(parallel_bulk(es, self.delete_iterator(docs_hash, index, args), thread_count=args.threads)):
+        for success, info in self.wrapper(parallel_bulk(es, self.delete_iterator(docs_hash, index, args),
+                                                        thread_count=args.threads, request_timeout=args.request_timeout)):
             if success:
                 successes += info['delete']['_shards']['successful']
             else:
