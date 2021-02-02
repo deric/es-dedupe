@@ -20,7 +20,7 @@ setup(
     ],
     description="A tool for duplicate removal from Elasticsearch",
     entry_points={
-        'console_scripts': 'esdedupe=cmd:main',
+        'console_scripts': 'esdedupe=esdedupe.cmd:main',
     },
     install_requires=[
         'ujson',
