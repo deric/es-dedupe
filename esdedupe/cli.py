@@ -61,7 +61,7 @@ class ArgumentParser(_Base):
                           action="store_true", dest="version",
                           default=False,
                           help="Print version and exit")
-        self.add_argument("--fail_fast",
+        self.add_argument("--fail-fast",
                           action="store_true", dest="fail_fast",
                           default=False,
                           help="Exit on exception from Elasticsearch")
@@ -85,6 +85,9 @@ class ArgumentParser(_Base):
                           action="store_true", dest="no_check",
                           default=False,
                           help="Disable check & remove if duplicities found after with standard search query")
+        self.add_argument("-l", "--level", dest="level",
+                          default="INFO",
+                          help="Python logging level (DEBUG, INFO, WARN, ERROR, CRITICAL)")
         self.add_argument("--log_dupl", dest="log_dupl",
                           default=None,
                           help="File to store duplicates mapping in JSON format")
