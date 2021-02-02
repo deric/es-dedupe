@@ -2,3 +2,4 @@ ujson
 tqdm
 psutil
 elasticsearch
+requests

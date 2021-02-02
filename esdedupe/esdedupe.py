@@ -9,6 +9,8 @@ import psutil
 import time
 import tqdm
 import ujson
+import requests
+import sys
 from collections import deque
 
 from elasticsearch import Elasticsearch, helpers
@@ -49,53 +51,87 @@ class Esdedupe:
         rss = process.memory_info().rss
         self.log.info("Memory usage: {}".format(self.bytes_fmt(rss)))
 
+    def elastic_uri(self, args):
+        if args.host.startswith('http'):
+            return '{0}:{1}'.format(args.host, args.port)
+        else:
+            if args.ssl:
+                return 'https://{0}:{1}'.format(args.host, args.port)
+            else:
+                return 'http://{0}:{1}'.format(args.host, args.port)
+
+    def ping(self, args):
+        uri = self.elastic_uri(args)
+        try:
+            self.log.debug("GET {0}".format(uri))
+            resp = requests.get(uri)
+            self.log.debug("Response: {0}".format(resp.text))
+            if (resp.status_code == 200):
+                return
+            else:
+                self.log.error("{0}: {1}".format(uri, resp.text))
+                sys.exit(1)
+        except requests.exceptions.ConnectionError as e:
+            self.log.error(
+                "Connection failed. Is Elasticsearch running on {0} ?".format(uri))
+            self.log.error("Check --host argument and --port")
+            # do not show this terrible traceback
+            # self.log.error(e)
+            sys.exit(1)
+        return
+
     def run(self, args):
         start = time.time()
         total = 0
 
         if args.noop:
             self.log.info("Running in NOOP mode, no document will be deleted.")
+        try:
+            # test connection to Elasticsearch cluster first
+            self.ping(args)
+            if args.user:
+                es = Elasticsearch([args.host],
+                                   port=args.port,
+                                   http_auth=(args.user, args.password),
+                                   use_ssl=args.ssl
+                                   )
+            else:
+                es = Elasticsearch([args.host],
+                                   port=args.port,
+                                   use_ssl=args.ssl
+                                   )
 
-        if args.user:
-            es = Elasticsearch([args.host],
-                               port=args.port,
-                               http_auth=(args.user, args.password),
-                               use_ssl=args.ssl
-                               )
-        else:
-            es = Elasticsearch([args.host],
-                               port=args.port,
-                               use_ssl=args.ssl
-                               )
+            resp = es.info()
+            self.log.info("elastic: {}, host: {}, version: {}".format(
+                resp['cluster_name'], args.host, resp['version']['number']))
 
-        resp = es.info()
-        self.log.info("elastic: {}, host: {}, version: {}".format(
-            resp['cluster_name'], args.host, resp['version']['number']))
+            docs_hash = {}
+            dupl = 0
 
-        docs_hash = {}
-        dupl = 0
+            # one or more fields to form a unique key
+            unique_fields = args.field.split(',')
+            self.log.info("Unique fields: {}".format(unique_fields))
 
-        # one or more fields to form a unique key
-        unique_fields = args.field.split(',')
-        self.log.info("Unique fields: {}".format(unique_fields))
+            if args.index != "":
+                index = args.index
+                args.all = False  # if indexname specifically was set, do not do --all mode
+                self.scan_and_remove(
+                    es, docs_hash, unique_fields, dupl, index, args)
 
-        if args.index != "":
-            index = args.index
-            args.all = False  # if indexname specifically was set, do not do --all mode
-            self.scan_and_remove(
-                es, docs_hash, unique_fields, dupl, index, args)
-
-        end = time.time()
-        if args.noop:
-            self.log.info("Simulation finished. Took: {0}".format(
-                timedelta(seconds=(end - start))))
-        else:
-            if dupl > 0:
-                self.log.info("Successfully completed duplicates removal. Took: {0}".format(
+            end = time.time()
+            if args.noop:
+                self.log.info("Simulation finished. Took: {0}".format(
                     timedelta(seconds=(end - start))))
             else:
-                self.log.info("Total time: {0}".format(
-                    timedelta(seconds=(end - start))))
+                if dupl > 0:
+                    self.log.info("Successfully completed duplicates removal. Took: {0}".format(
+                        timedelta(seconds=(end - start))))
+                else:
+                    self.log.info("Total time: {0}".format(
+                        timedelta(seconds=(end - start))))
+
+        except Exception as e:
+            self.log.error(e)
 
     def scan_and_remove(self, es, docs_hash, unique_fields, dupl, index, args):
         i = 0

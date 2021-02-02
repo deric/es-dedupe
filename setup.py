@@ -23,16 +23,17 @@ setup(
         'console_scripts': 'esdedupe=esdedupe.cmd:main',
     },
     install_requires=[
-        'ujson',
-        'tqdm',
-        'psutil',
         'elasticsearch>5.0'
+        'psutil',
+        'tqdm',
+        'ujson',
+        'requests'
     ],
     license='Apache License 2.0',
     keywords='elasticsearch',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    name='esdedupe',
+        name='esdedupe',
     packages=find_packages(),
     url='https://github.com/deric/es-dedupe',
     version=esdedupe.__VERSION__,

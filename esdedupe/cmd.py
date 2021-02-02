@@ -42,6 +42,7 @@ def setup_logging(args, default_log_level=INFO):
     # elasticsearch scroll output is too verbose
     getLogger('elasticsearch').level = WARN
 
+
 def loglevel(level):
     return {
         'NOTSET': 0,
