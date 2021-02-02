@@ -56,9 +56,15 @@ class Esdedupe:
         if args.noop:
             self.log.info("Running in NOOP mode, no document will be deleted.")
 
-        es = Elasticsearch([args.host],
-                           port=args.port
-                           )
+        if args.user:
+            es = Elasticsearch([args.host],
+                               port=args.port,
+                               http_auth=(args.user, args.password)
+                               )
+        else:
+            es = Elasticsearch([args.host],
+                               port=args.port
+                               )
 
         resp = es.info()
         self.log.info("elastic: {}, host: {}, version: {}".format(
@@ -74,7 +80,8 @@ class Esdedupe:
         if args.index != "":
             index = args.index
             args.all = False  # if indexname specifically was set, do not do --all mode
-            self.scan_and_remove(es, docs_hash, unique_fields, dupl, index, args)
+            self.scan_and_remove(
+                es, docs_hash, unique_fields, dupl, index, args)
 
         end = time.time()
         if args.noop:

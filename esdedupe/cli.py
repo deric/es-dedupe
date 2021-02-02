@@ -97,6 +97,12 @@ class ArgumentParser(_Base):
                           action="store_true", dest="noop",
                           default=False,
                           help="Do not take any destructive action (only print delete queries)")
+        self.add_argument("--user", dest="user",
+                          default=None,
+                          help="HTTP auth user")
+        self.add_argument("--password", dest="password",
+                          default=None,
+                          help="HTTP auth password")
         self.add_argument('--log-stream-stdout', action='store_true',
                           default=False,
                           help='Log to stdout instead of stderr')
