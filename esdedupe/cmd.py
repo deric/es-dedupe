@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import, division, print_function, \
+    unicode_literals
+
 import argparse
 import os
 import sys
@@ -10,8 +13,9 @@ from logging import DEBUG, INFO, WARN, Formatter, StreamHandler, \
 from logging.handlers import SysLogHandler
 from sys import stderr, stdout
 
+import esdedupe
 
-from .esdedupe import Esdedupe
+from . import __VERSION__
 from .cli import ArgumentParser
 
 
@@ -42,6 +46,11 @@ def main():
     parser = ArgumentParser(description="Elastic duplicates deleter",
                             add_help=True, prog='esdedupe')
     args = parser.parse_args(sys.argv[1:])
+
+    if args.version:
+        print("esdedupe {}".format(__VERSION__))
+        os._exit(0)
+
     setup_logging(args)
     try:
         dedupe = Esdedupe()

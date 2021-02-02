@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # -*- coding: utf-8 -*-
 
@@ -57,10 +57,10 @@ class ArgumentParser(_Base):
         self.add_argument("--until", dest="until",
                           default=None,
                           help="Search until given timestamp")
-        self.add_argument("-v", "--verbose",
-                          action="store_true", dest="verbose",
+        self.add_argument("-v", "--version",
+                          action="store_true", dest="version",
                           default=False,
-                          help="enable verbose logging")
+                          help="Print version and exit")
         self.add_argument("--fail_fast",
                           action="store_true", dest="fail_fast",
                           default=False,
