@@ -56,9 +56,6 @@ class Esdedupe:
         if args.noop:
             self.log.info("Running in NOOP mode, no document will be deleted.")
 
-        if (args.index != ""):
-            args.all = False  # if indexname specifically was set, do not do --all mode
-
         es = Elasticsearch([args.host],
                            port=args.port
                            )
@@ -76,37 +73,8 @@ class Esdedupe:
 
         if args.index != "":
             index = args.index
-            i = 0
-            self.log.info("Building documents mapping on index: {}, batch size: {}".format(
-                index, args.batch))
-            for hit in helpers.scan(es, index=index, size=args.batch, query=self.es_query(args), scroll=args.scroll):
-                self.build_index(docs_hash, unique_fields, hit)
-                i += 1
-                if args.verbose:
-                    if (i % 1000000 == 0):
-                        self.log.info(
-                            "Scanned {:0,} unique documents".format(len(docs_hash)))
-                        self.report_memusage()
-            dupl = self.count_duplicates(docs_hash)
-            if dupl == 0:
-                self.log.info("No duplicates found")
-            else:
-                total = len(docs_hash)
-                self.log.info("Found {:0,} duplicates out of {:0,} docs, unique documents: {:0,} ({:.1f}% duplicates)".format(
-                    dupl, dupl+total, total, dupl/(dupl+total)*100))
-
-                if args.log_dupl:
-                    self.save_documents_mapping(docs_hash, args)
-                if args.noop:
-                    if args.verbose:
-                        self.print_duplicates(docs_hash, index, es, args)
-                else:
-                    if args.threads > 1:
-                        self.parallel_delete(docs_hash, index, es, args, dupl)
-                    else:
-                        # safer option, should avoid overloading elastic
-                        self.sequential_delete(
-                            docs_hash, index, es, args, dupl)
+            args.all = False  # if indexname specifically was set, do not do --all mode
+            self.scan_and_remove(es, docs_hash, unique_fields, dupl, index, args)
 
         end = time.time()
         if args.noop:
@@ -119,6 +87,39 @@ class Esdedupe:
             else:
                 self.log.info("Total time: {0}".format(
                     timedelta(seconds=(end - start))))
+
+    def scan_and_remove(self, es, docs_hash, unique_fields, dupl, index, args):
+        i = 0
+        self.log.info("Building documents mapping on index: {}, batch size: {}".format(
+            index, args.batch))
+        for hit in helpers.scan(es, index=index, size=args.batch, query=self.es_query(args), scroll=args.scroll):
+            self.build_index(docs_hash, unique_fields, hit)
+            i += 1
+            if args.verbose:
+                if (i % 1000000 == 0):
+                    self.log.info(
+                        "Scanned {:0,} unique documents".format(len(docs_hash)))
+                    self.report_memusage()
+        dupl = self.count_duplicates(docs_hash)
+        if dupl == 0:
+            self.log.info("No duplicates found")
+        else:
+            total = len(docs_hash)
+            self.log.info("Found {:0,} duplicates out of {:0,} docs, unique documents: {:0,} ({:.1f}% duplicates)".format(
+                dupl, dupl+total, total, dupl/(dupl+total)*100))
+
+            if args.log_dupl:
+                self.save_documents_mapping(docs_hash, args)
+            if args.noop:
+                if args.verbose:
+                    self.print_duplicates(docs_hash, index, es, args)
+            else:
+                if args.threads > 1:
+                    self.parallel_delete(docs_hash, index, es, args, dupl)
+                else:
+                    # safer option, should avoid overloading elastic
+                    self.sequential_delete(
+                        docs_hash, index, es, args, dupl)
 
     def es_query(self, args):
         if args.timestamp:
@@ -160,6 +161,8 @@ class Esdedupe:
             except StopIteration:
                 break
             except Exception as e:
+                # TODO: after catching exception we're unable to continue
+                # which is good, we don't overload ES cluster
                 self.log.error(e)
 
     def sequential_delete(self, docs_hash, index, es, args, duplicates):
