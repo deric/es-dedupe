@@ -1,9 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # -*- coding: utf-8 -*-
-import logging
 
-from .esdedupe import Esdedupe
-
-#logger = logging.getLogger("elasticsearch")
-# logger.addHandler(logging.NullHandler())
+__VERSION__ = '2.0.0'
