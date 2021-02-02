@@ -2,8 +2,8 @@
 
 # -*- coding: utf-8 -*-
 
+
 from argparse import ArgumentParser as _Base
-from sys import stderr, stdout
 
 
 class ArgumentParser(_Base):
@@ -23,25 +23,33 @@ class ArgumentParser(_Base):
                           help="Elasticsearch hostname", metavar="host")
         self.add_argument("-f", "--field", dest="field",
                           default="Uuid",
-                          help="Field in ES that is supposed to be unique", metavar="field")
+                          help="Field in ES that is supposed to be unique",
+                          metavar="field")
         self.add_argument("--flush",
                           dest="flush", default=500, type=int,
                           help="Number records send in one bulk request")
         self.add_argument("-i", "--index", dest="index",
                           default="",
-                          help="Elasticsearch full index name, implies NOT --all", metavar="index")
+                          help="Elasticsearch full index name, implies NOT --all",
+                          metavar="index")
         self.add_argument("-I", "--indexexclude", dest="indexexclude",
                           default="",
-                          help="Elasticsearch regular expression of index name that is to be excluded, only useful with --all", metavar="indexexclude-regexp")
+                          help="""Elasticsearch regular expression of index
+                          name that is to be excluded, only useful with --all""",
+                          metavar="indexexclude-regexp")
         self.add_argument("-j", "--threads",
                           dest="threads", default=1, type=int,
-                          help="Number of threads to execute delete queries, when 1 seqential delete will be used. Note parallel delete can easily overload cluster")
+                          help="""Number of threads to execute delete queries,
+                          when 1 seqential delete will be used. Note parallel
+                          delete can easily overload cluster""")
         self.add_argument("-p", "--prefix", dest="prefix",
                           default="*",
                           help="Elasticsearch index prefix", metavar="prefix")
         self.add_argument("-S", "--prefixseparator", dest="prefixseparator",
                           default="-",
-                          help="Elasticsearch index prefix separator to use between prefix, idxname and *", metavar="prefixsep")
+                          help="""Elasticsearch index prefix separator to use
+                          between prefix, idxname and *""",
+                          metavar="prefixsep")
         self.add_argument("-P", "--port", dest="port",
                           default=9200, type=int,
                           help="Elasticsearch port", metavar="port")
@@ -70,7 +78,8 @@ class ArgumentParser(_Base):
                           help="Maximum retries for rejected bulk delete")
         self.add_argument("--initial_backoff",
                           dest="initial_backoff", default=2, type=int,
-                          help="Number of seconds we should wait before the first retry. Any subsequent retries will be powers of initial_backoff * 2**retry_number")
+                          help="""Number of seconds we should wait before the first retry.
+                          Any subsequent retries will be powers of initial_backoff * 2**retry_number""")
         self.add_argument("--scroll", dest="scroll",
                           default="10m",
                           help="Specify how long a consistent view of the index should be maintained for scrolled search")

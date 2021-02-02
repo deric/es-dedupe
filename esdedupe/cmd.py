@@ -4,7 +4,6 @@
 from __future__ import absolute_import, division, print_function, \
     unicode_literals
 
-import argparse
 import os
 import sys
 
@@ -12,8 +11,6 @@ from logging import DEBUG, INFO, WARN, Formatter, StreamHandler, \
     getLogger
 from logging.handlers import SysLogHandler
 from sys import stderr, stdout
-
-import esdedupe
 
 from . import __VERSION__
 from .esdedupe import Esdedupe

@@ -3,7 +3,6 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
-import inspect
 import os.path
 import psutil
 import time
@@ -11,7 +10,6 @@ import tqdm
 import ujson
 import requests
 import sys
-from collections import deque
 
 from elasticsearch import Elasticsearch, helpers
 from elasticsearch.helpers import parallel_bulk
@@ -73,7 +71,7 @@ class Esdedupe:
                 sys.exit(1)
         except requests.exceptions.ConnectionError as e:
             self.log.error(
-                "Connection failed. Is Elasticsearch running on {0} ?".format(uri))
+                "Connection failed. Is ES running on {0} ?".format(uri))
             self.log.error("Check --host argument and --port")
             # do not show this terrible traceback
             # self.log.error(e)
@@ -114,7 +112,8 @@ class Esdedupe:
 
             if args.index != "":
                 index = args.index
-                args.all = False  # if indexname specifically was set, do not do --all mode
+                # if indexname specifically was set, do not do --all mode
+                args.all = False
                 self.scan_and_remove(
                     es, docs_hash, unique_fields, dupl, index, args)
 
