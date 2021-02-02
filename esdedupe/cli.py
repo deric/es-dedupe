@@ -103,6 +103,10 @@ class ArgumentParser(_Base):
         self.add_argument("--password", dest="password",
                           default=None,
                           help="HTTP auth password")
+        self.add_argument("--ssl",
+                          action="store_true", dest="ssl",
+                          default=False,
+                          help="Use SSL")
         self.add_argument('--log-stream-stdout', action='store_true',
                           default=False,
                           help='Log to stdout instead of stderr')

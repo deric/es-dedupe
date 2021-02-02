@@ -59,11 +59,13 @@ class Esdedupe:
         if args.user:
             es = Elasticsearch([args.host],
                                port=args.port,
-                               http_auth=(args.user, args.password)
+                               http_auth=(args.user, args.password),
+                               use_ssl=args.ssl
                                )
         else:
             es = Elasticsearch([args.host],
-                               port=args.port
+                               port=args.port,
+                               use_ssl=args.ssl
                                )
 
         resp = es.info()
