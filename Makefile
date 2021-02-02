@@ -43,4 +43,4 @@ clean:
 	find . -name '*.pyo' -exec rm --force {} +
 	find . -name '*~' -exec rm --force  {} +
 
-.PHONY: clean test
+.PHONY: clean test build

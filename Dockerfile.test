@@ -7,4 +7,4 @@ ADD requirements-dev.txt /tmp/
 RUN pip3 install wheel && pip3 install -r /tmp/requirements-dev.txt
 RUN mkdir /app
 ADD . /app
-RUN python3 -m pytest -v --capture=no tests/
+RUN cd app && python3 -m pytest -v --capture=no tests/
