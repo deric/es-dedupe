@@ -178,7 +178,7 @@ class Esdedupe:
             progress.update(1)
 
         self.log.info(
-            "Deleted {:0,}/{:0,} documents".format(successes, duplicates))
+            "Deleted {:0,} documents (including shard replicas)".format(successes))
 
     def parallel_delete(self, docs_hash, index, es, args, duplicates):
         progress = tqdm.tqdm(unit="docs", total=duplicates)
@@ -195,7 +195,7 @@ class Esdedupe:
             progress.update(1)
 
         self.log.info(
-            "Deleted {:0,}/{:0,} documents".format(successes, duplicates))
+            "Deleted {:0,} documents (including shard replicas)".format(successes))
 
     def delete_iterator(self, docs_hash, index, args):
         for hashval, ids in docs_hash.items():
