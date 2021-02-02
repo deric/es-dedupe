@@ -15,11 +15,12 @@ setup(
     author_email='barton.tomas@gmail.com',
     classifiers=[
         "Programming Language :: Python :: 3",
+        "OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ],
     description="A tool for duplicate removal from Elasticsearch",
     entry_points={
-        'console_scripts': 'esdedupe=esdedupe:main',
+        'console_scripts': 'esdedupe=cmd:main',
     },
     install_requires=[
         'ujson',
