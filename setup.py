@@ -13,9 +13,13 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 setup(
     author='Tomas Barton',
     author_email='barton.tomas@gmail.com',
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "Operating System :: OS Independent",
+    ],
     description="A tool for duplicate removal from Elasticsearch",
     entry_points={
-        'console_scripts': 'esdedupe',
+        'console_scripts': 'esdedupe=esdedupe:main',
     },
     install_requires=[
         'ujson',
@@ -23,7 +27,8 @@ setup(
         'psutil',
         'elasticsearch>5.0'
     ],
-    license='Apache2',
+    license='Apache License 2.0',
+    keywords='elasticsearch',
     long_description=long_description,
     long_description_content_type='text/markdown',
     name='esdedupe',

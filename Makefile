@@ -32,6 +32,9 @@ fix:
 lint:
 	flake8 esdedupe/
 
+package:
+	python3 setup.py sdist bdist_wheel
+
 test:
 	pytest --pep8 --cov -s
 
