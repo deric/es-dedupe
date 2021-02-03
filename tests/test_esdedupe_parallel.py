@@ -27,9 +27,9 @@ def dedupe():
     print("Created index {}".format(INDEX))
 
     # fill with documents
-    for i in range(500):
+    for i in range(50):
         es.create(index=INDEX, id=random_string(8), body={"name": "foo"})
-    for i in range(500):
+    for i in range(50):
         es.create(index=INDEX, id=random_string(8), body={"name": "bar"})
 
     yield "dedupe"
@@ -48,7 +48,7 @@ class TestDedupe:
         # make sure elastic indexes inserted documents
 
         i = 0
-        while res['count'] < 1000:
+        while res['count'] < 100:
             time.sleep(1)
             i += 1
             res = es.count(index=INDEX)
@@ -60,7 +60,7 @@ class TestDedupe:
         dedupe.run(parser.parse_args(['-i', INDEX, '--field', 'name', '--log-stream-stdout', '-j 4']))
 
         i = 0
-        while res['count'] == 1000:
+        while res['count'] == 100:
             time.sleep(1)
             i += 1
             res = es.count(index=INDEX)

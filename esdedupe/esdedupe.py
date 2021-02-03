@@ -17,7 +17,8 @@ from logging import getLogger
 from datetime import timedelta
 
 from . import __VERSION__
-from . import utils
+from .utils import memusage
+
 
 class Esdedupe:
 
@@ -72,7 +73,8 @@ class Esdedupe:
         start = time.time()
         total = 0
 
-        self.log.info("Starting esdedupe: {} - duplicate document removal tool".format(__VERSION__))
+        self.log.info(
+            "Starting esdedupe: {} - duplicate document removal tool".format(__VERSION__))
         if args.noop:
             self.log.info("Running in NOOP mode, no document will be deleted.")
         try:
@@ -105,8 +107,7 @@ class Esdedupe:
                 index = args.index
                 # if indexname specifically was set, do not do --all mode
                 args.all = False
-                self.process_index(self, es, docs_hash, pk, dupl, index, args)
-
+                self.process_index(es, docs_hash, pk, dupl, index, args)
 
             end = time.time()
             if args.noop:
@@ -126,9 +127,11 @@ class Esdedupe:
 
     def process_index(self, es, docs_hash, unique_fields, dupl, index, args):
         if args.window:
-            self.scan_and_remove(es, docs_hash, unique_fields, dupl, index, args)
+            self.scan_and_remove(
+                es, docs_hash, unique_fields, dupl, index, args)
         else:
-            self.scan_and_remove(es, docs_hash, unique_fields, dupl, index, args)
+            self.scan_and_remove(
+                es, docs_hash, unique_fields, dupl, index, args)
 
     def scan(self, es, docs_hash, unique_fields, index, args):
         i = 0
@@ -141,7 +144,7 @@ class Esdedupe:
             if (i % args.mem_report == 0):
                 self.log.debug(
                     "Scanned {:0,} unique documents, memory usage: ".format(
-                    len(docs_hash), utils.memusage()))
+                        len(docs_hash), memusage()))
         return self.count_duplicates(docs_hash)
 
     def scan_and_remove(self, es, docs_hash, unique_fields, dupl, index, args):
