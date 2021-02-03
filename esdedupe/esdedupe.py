@@ -17,6 +17,8 @@ from elasticsearch.helpers import streaming_bulk
 from logging import getLogger
 from datetime import timedelta
 
+from . import __VERSION__
+
 
 class Esdedupe:
 
@@ -82,6 +84,7 @@ class Esdedupe:
         start = time.time()
         total = 0
 
+        self.log.info("Starting esdedupe: {} - duplicate document removal tool".format(__VERSION__))
         if args.noop:
             self.log.info("Running in NOOP mode, no document will be deleted.")
         try:
