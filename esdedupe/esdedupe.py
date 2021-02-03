@@ -4,7 +4,6 @@
 
 import hashlib
 import os.path
-import psutil
 import time
 import tqdm
 import ujson
@@ -18,7 +17,7 @@ from logging import getLogger
 from datetime import timedelta
 
 from . import __VERSION__
-
+from . import utils
 
 class Esdedupe:
 
@@ -29,6 +28,7 @@ class Esdedupe:
     def build_index(self, docs_hash, unique_fields, hit):
         hashval = None
         _id = hit["_id"]
+        # there's no need to hash, if we have just single unique key
         if len(unique_fields) > 1:
             combined_key = ""
             for field in unique_fields:
@@ -38,18 +38,6 @@ class Esdedupe:
             hashval = str(hit['_source'][unique_fields[0]])
 
         docs_hash.setdefault(hashval, []).append(_id)
-
-    def bytes_fmt(self, num, suffix='B'):
-        for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
-            if abs(num) < 1024.0:
-                return "%3.1f%s%s" % (num, unit, suffix)
-            num /= 1024.0
-        return "%.1f%s%s" % (num, 'Y', suffix)
-
-    def report_memusage(self):
-        process = psutil.Process(os.getpid())
-        rss = process.memory_info().rss
-        self.log.info("Memory usage: {}".format(self.bytes_fmt(rss)))
 
     def elastic_uri(self, args):
         if args.host.startswith('http'):
@@ -109,16 +97,16 @@ class Esdedupe:
             docs_hash = {}
             dupl = 0
 
-            # one or more fields to form a unique key
-            unique_fields = args.field.split(',')
-            self.log.info("Unique fields: {}".format(unique_fields))
+            # one or more fields to form a unique key (primary key)
+            pk = args.field.split(',')
+            self.log.info("Unique fields: {}".format(pk))
 
             if args.index != "":
                 index = args.index
                 # if indexname specifically was set, do not do --all mode
                 args.all = False
-                self.scan_and_remove(
-                    es, docs_hash, unique_fields, dupl, index, args)
+                self.process_index(self, es, docs_hash, pk, dupl, index, args)
+
 
             end = time.time()
             if args.noop:
@@ -126,8 +114,9 @@ class Esdedupe:
                     timedelta(seconds=(end - start))))
             else:
                 if dupl > 0:
-                    self.log.info("Successfully completed duplicates removal. Took: {0}".format(
-                        timedelta(seconds=(end - start))))
+                    self.log.info("""Successfully completed duplicates removal.
+                                  Took: {0}""".format(timedelta(seconds=(end - start)))
+                                  )
                 else:
                     self.log.info("Total time: {0}".format(
                         timedelta(seconds=(end - start))))
@@ -135,7 +124,13 @@ class Esdedupe:
         except Exception as e:
             self.log.error(e)
 
-    def scan_and_remove(self, es, docs_hash, unique_fields, dupl, index, args):
+    def process_index(self, es, docs_hash, unique_fields, dupl, index, args):
+        if args.window:
+            self.scan_and_remove(es, docs_hash, unique_fields, dupl, index, args)
+        else:
+            self.scan_and_remove(es, docs_hash, unique_fields, dupl, index, args)
+
+    def scan(self, es, docs_hash, unique_fields, index, args):
         i = 0
         self.log.info("Building documents mapping on index: {}, batch size: {}".format(
             index, args.batch))
@@ -145,9 +140,13 @@ class Esdedupe:
             i += 1
             if (i % args.mem_report == 0):
                 self.log.debug(
-                    "Scanned {:0,} unique documents".format(len(docs_hash)))
-                self.report_memusage()
-        dupl = self.count_duplicates(docs_hash)
+                    "Scanned {:0,} unique documents, memory usage: ".format(
+                    len(docs_hash), utils.memusage()))
+        return self.count_duplicates(docs_hash)
+
+    def scan_and_remove(self, es, docs_hash, unique_fields, dupl, index, args):
+        # find duplicate documents
+        dupl = self.scan(es, docs_hash, unique_fields, index, args)
         if dupl == 0:
             self.log.info("No duplicates found")
         else:
@@ -167,8 +166,7 @@ class Esdedupe:
                     self.parallel_delete(docs_hash, index, es, args, dupl)
                 else:
                     # safer option, should avoid overloading elastic
-                    self.sequential_delete(
-                        docs_hash, index, es, args, dupl)
+                    self.sequential_delete(docs_hash, index, es, args, dupl)
 
     def es_query(self, args):
         if args.timestamp:

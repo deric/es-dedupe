@@ -65,6 +65,9 @@ class ArgumentParser(_Base):
         self.add_argument("--until", dest="until",
                           default=None,
                           help="Search until given timestamp")
+        self.add_argument("-w", "--window", dest="window",
+                          default=None,
+                          help="Time window, requires --timestamp and --since flags")
         self.add_argument("-v", "--version",
                           action="store_true", dest="version",
                           default=False,
