@@ -3,7 +3,6 @@
 # -*- coding: utf-8 -*-
 
 import hashlib
-import os.path
 import time
 import tqdm
 import ujson
@@ -143,7 +142,7 @@ class Esdedupe:
             i += 1
             if (i % args.mem_report == 0):
                 self.log.debug(
-                    "Scanned {:0,} unique documents, memory usage: ".format(
+                    "Scanned {:0,} unique documents, memory usage: {}".format(
                         len(docs_hash), memusage()))
         return self.count_duplicates(docs_hash)
 
@@ -154,8 +153,11 @@ class Esdedupe:
             self.log.info("No duplicates found")
         else:
             total = len(docs_hash)
-            self.log.info("Found {:0,} duplicates out of {:0,} docs, unique documents: {:0,} ({:.1f}% duplicates)".format(
-                dupl, dupl+total, total, dupl/(dupl+total)*100))
+            self.log.info(
+                """Found {:0,} duplicates out of {:0,} docs,
+                unique documents: {:0,} ({:.1f}% duplicates)""".format(
+                    dupl, dupl+total, total, dupl/(dupl+total)*100)
+                )
 
             if args.log_dupl:
                 self.save_documents_mapping(docs_hash, args)
