@@ -216,7 +216,8 @@ class Esdedupe:
                 self.log.error(e)
 
     def sequential_delete(self, docs_hash, index, es, args, duplicates):
-        progress = tqdm.tqdm(unit="docs", total=duplicates)
+        if not args.no_progress:
+            progress = tqdm.tqdm(unit="docs", total=duplicates)
         successes = 0
 
         for success, info in self.wrapper(streaming_bulk(es, self.delete_iterator(docs_hash, index, args),
@@ -227,14 +228,15 @@ class Esdedupe:
                 successes += info['delete']['_shards']['successful']
             else:
                 print('Doc failed', info)
-            # print(info)
-            progress.update(1)
+            if not args.no_progress:
+                progress.update(1)
 
         self.log.info(
             "Deleted {:0,} documents (including shard replicas)".format(successes))
 
     def parallel_delete(self, docs_hash, index, es, args, duplicates):
-        progress = tqdm.tqdm(unit="docs", total=duplicates)
+        if not args.no_progress:
+            progress = tqdm.tqdm(unit="docs", total=duplicates)
         successes = 0
 
         for success, info in self.wrapper(parallel_bulk(es, self.delete_iterator(docs_hash, index, args),
@@ -244,8 +246,8 @@ class Esdedupe:
                 successes += info['delete']['_shards']['successful']
             else:
                 print('Doc failed', info)
-            # print(info)
-            progress.update(1)
+            if not args.no_progress:
+                progress.update(1)
 
         self.log.info(
             "Deleted {:0,} documents (including shard replicas)".format(successes))

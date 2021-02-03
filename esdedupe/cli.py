@@ -136,6 +136,10 @@ class ArgumentParser(_Base):
         self.add_argument("--mem-report",
                           dest="mem_report", default=1000000, type=int,
                           help="Print memory parsing N documents, default: 1000000")
+        self.add_argument("--no-progress",
+                          action="store_true", dest="no_progress",
+                          default=False,
+                          help="Hide progress bar")
 
         parser = super(ArgumentParser, self).parse_args(args)
         return parser

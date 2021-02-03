@@ -57,7 +57,8 @@ class TestDedupe:
 
         dedupe = esdedupe.Esdedupe()
         parser = ArgumentParser()
-        dedupe.run(parser.parse_args(['-i', INDEX, '--field', 'name', '--log-stream-stdout']))
+        dedupe.run(parser.parse_args(['-i', INDEX, '--field', 'name', '--log-stream-stdout',
+            '--no-progress']))
 
         i = 0
         while res['count'] == 20:
