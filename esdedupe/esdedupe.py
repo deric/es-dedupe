@@ -142,11 +142,10 @@ class Esdedupe:
         for hit in helpers.scan(es, index=index, size=args.batch, query=self.es_query(args), scroll=args.scroll):
             self.build_index(docs_hash, unique_fields, hit)
             i += 1
-            if args.verbose:
-                if (i % 1000000 == 0):
-                    self.log.info(
-                        "Scanned {:0,} unique documents".format(len(docs_hash)))
-                    self.report_memusage()
+            if (i % 1000000 == 0):
+                self.log.debug(
+                    "Scanned {:0,} unique documents".format(len(docs_hash)))
+                self.report_memusage()
         dupl = self.count_duplicates(docs_hash)
         if dupl == 0:
             self.log.info("No duplicates found")
@@ -158,7 +157,9 @@ class Esdedupe:
             if args.log_dupl:
                 self.save_documents_mapping(docs_hash, args)
             if args.noop:
-                if args.verbose:
+                self.log.info("""In order to print matching IDs to stdout run with
+                              --debug flag or save results to JSON file using --log_dupl docs.json""")
+                if args.debug:
                     self.print_duplicates(docs_hash, index, es, args)
             else:
                 if args.threads > 1:
