@@ -6,5 +6,4 @@ RUN apt-get update && apt-get install --no-install-recommends -y python3-pip pyt
 ADD requirements-dev.txt /tmp/
 RUN pip3 install wheel && pip3 install -r /tmp/requirements-dev.txt
 RUN mkdir /app
-ADD . /app
-RUN cd app && python3 -m pytest -v --capture=no tests/
+WORKDIR /app
