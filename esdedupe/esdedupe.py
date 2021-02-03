@@ -139,10 +139,11 @@ class Esdedupe:
         i = 0
         self.log.info("Building documents mapping on index: {}, batch size: {}".format(
             index, args.batch))
-        for hit in helpers.scan(es, index=index, size=args.batch, query=self.es_query(args), scroll=args.scroll):
+        for hit in helpers.scan(es, index=index, size=args.batch,
+                                query=self.es_query(args), scroll=args.scroll):
             self.build_index(docs_hash, unique_fields, hit)
             i += 1
-            if (i % 1000000 == 0):
+            if (i % args.mem_report == 0):
                 self.log.debug(
                     "Scanned {:0,} unique documents".format(len(docs_hash)))
                 self.report_memusage()

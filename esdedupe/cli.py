@@ -79,7 +79,8 @@ class ArgumentParser(_Base):
         self.add_argument("--initial_backoff",
                           dest="initial_backoff", default=2, type=int,
                           help="""Number of seconds we should wait before the first retry.
-                          Any subsequent retries will be powers of initial_backoff * 2**retry_number""")
+                          Any subsequent retries will be powers of
+                          initial_backoff * 2**retry_number""")
         self.add_argument("--scroll", dest="scroll",
                           default="10m",
                           help="Specify how long a consistent view of the index should be maintained for scrolled search")
@@ -129,6 +130,9 @@ class ArgumentParser(_Base):
                           help='Syslog device')
         self.add_argument('--syslog-facility', default='local0',
                           help='Syslog facility')
+        self.add_argument("--mem-report",
+                          dest="mem_report", default=1000000, type=int,
+                          help="Print memory parsing N documents, default: 1000000")
 
         parser = super(ArgumentParser, self).parse_args(args)
         return parser
