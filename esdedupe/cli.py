@@ -105,7 +105,7 @@ class ArgumentParser(_Base):
                           default="INFO",
                           help="Python logging level (DEBUG, INFO, WARN, ERROR, CRITICAL)")
         self.add_argument("--es-level", dest="es_level",
-                          default="INFO",
+                          default="WARN",
                           help="Elasticsearch logging level (DEBUG, INFO, WARN, ERROR, CRITICAL)")
         self.add_argument("--log_dupl", dest="log_dupl",
                           default=None,
