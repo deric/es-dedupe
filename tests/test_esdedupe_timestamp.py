@@ -7,7 +7,9 @@ import string
 import time
 
 import esdedupe
+from logging import DEBUG
 from esdedupe.cli import ArgumentParser
+from esdedupe.cmd import setup_logging
 
 INDEX = 'test-timeseries'
 
@@ -50,7 +52,6 @@ class TestDedupe:
         es = Elasticsearch()
         res = es.count(index=INDEX)
         # make sure elastic indexes inserted documents
-
         i = 0
         while res['count'] < 20:
             time.sleep(1)
@@ -58,17 +59,21 @@ class TestDedupe:
             res = es.count(index=INDEX)
             if i > 3:
                 assert False
+        print("doc count: {}".format(res['count']))
 
         dedupe = esdedupe.Esdedupe()
         parser = ArgumentParser()
-        dedupe.run(parser.parse_args(['-i', INDEX, '-f name','-T timestamp','-w 5m','-F 2021-01-01T01:01:00', '-U 2021-01-01T01:20:00']))
+        args = parser.parse_args(['-i', INDEX, '-f name','-T timestamp','-w 5m','-F 2021-01-01T01:01:00', '-U 2021-01-01T01:20:00'])
+        setup_logging(args)
+        dedupe.run(args)
 
         i = 0
-        while res['count'] == 20:
+        while res['count'] > 19:
             time.sleep(1)
             i += 1
+            print(res['count'])
             res = es.count(index=INDEX)
             if i > 3:
                 assert False
 
-        assert es.count(index=INDEX)['count'] == 2
+        assert es.count(index=INDEX)['count'] == 4

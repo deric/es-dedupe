@@ -57,7 +57,7 @@ class ArgumentParser(_Base):
         self.add_argument("-t", "--doc_type", dest="doc_type",
                           default=None,
                           help="ES document type")
-        self.add_argument("-T", dest="timestamp",
+        self.add_argument('-T','--timestamp', dest="timestamp",
                           default=None,
                           help="Timestamp field")
         self.add_argument('-F','--since', dest="since",

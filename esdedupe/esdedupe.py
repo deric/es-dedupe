@@ -147,6 +147,7 @@ class Esdedupe:
             currEnd = args.since + timedelta(seconds=win)
             # scan & remove using sliding window
             while currEnd < end:
+                docs = {} # avoid deleting same documents again and again
                 self.log.info("Using window {}, from: {} until: {}".format(
                     args.window, to_es_date(currStart), to_es_date(currEnd)))
                 args.since = currStart
@@ -187,8 +188,7 @@ class Esdedupe:
         else:
             total = len(docs_hash)
             self.log.info(
-                """Found {:0,} duplicates out of {:0,} docs,
-                unique documents: {:0,} ({:.1f}% duplicates)""".format(
+                "Found {:0,} duplicates out of {:0,} docs, unique documents: {:0,} ({:.1f}% duplicates)".format(
                     dupl, dupl+total, total, dupl/(dupl+total)*100)
                 )
 
@@ -210,9 +210,11 @@ class Esdedupe:
         if args.timestamp:
             filter = {"format": "strict_date_optional_time"}
             if args.since:
+                # Greater than or equal to
                 filter['gte'] = to_es_date(args.since)
             if args.until:
-                filter['lte'] = to_es_date(args.until)
+                # Less than
+                filter['lt'] = to_es_date(args.until)
             query = {
                 "query": {
                     "bool": {
