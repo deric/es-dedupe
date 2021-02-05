@@ -2,6 +2,7 @@
 
 # -*- coding: utf-8 -*-
 
+import datetime
 
 from argparse import ArgumentParser as _Base
 
@@ -56,14 +57,16 @@ class ArgumentParser(_Base):
         self.add_argument("-t", "--doc_type", dest="doc_type",
                           default=None,
                           help="ES document type")
-        self.add_argument("--timestamp", dest="timestamp",
+        self.add_argument("-T", dest="timestamp",
                           default=None,
                           help="Timestamp field")
-        self.add_argument("--since", dest="since",
+        self.add_argument('-F','--since', dest="since",
+                          type=lambda s: datetime.datetime.strptime(s.lstrip(), "%Y-%m-%dT%H:%M:%S"),
                           default=None,
                           help="Search from given timestamp")
-        self.add_argument("--until", dest="until",
+        self.add_argument('-U','--until', dest="until",
                           default=None,
+                          type=lambda s: datetime.datetime.strptime(s.lstrip(), "%Y-%m-%dT%H:%M:%S"),
                           help="Search until given timestamp")
         self.add_argument("-w", "--window", dest="window",
                           default=None,
@@ -140,6 +143,9 @@ class ArgumentParser(_Base):
                           action="store_true", dest="no_progress",
                           default=False,
                           help="Hide progress bar")
-
-        parser = super(ArgumentParser, self).parse_args(args)
+        print("esdedupe {}".format(' '.join(args)))
+        try:
+            parser = super(ArgumentParser, self).parse_args(args)
+        except ValueError as e:
+            print(e)
         return parser

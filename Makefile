@@ -42,5 +42,6 @@ clean:
 	find . -name '*.pyc' -exec rm --force {} +
 	find . -name '*.pyo' -exec rm --force {} +
 	find . -name '*~' -exec rm --force  {} +
+	rm -rf esdedupe.egg-info dist build
 
 .PHONY: clean test build

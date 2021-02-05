@@ -13,10 +13,10 @@ from elasticsearch import Elasticsearch, helpers
 from elasticsearch.helpers import parallel_bulk
 from elasticsearch.helpers import streaming_bulk
 from logging import getLogger
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from . import __VERSION__
-from .utils import memusage
+from .utils import memusage, time_to_sec, to_es_date
 
 
 class Esdedupe:
@@ -70,7 +70,6 @@ class Esdedupe:
 
     def run(self, args):
         start = time.time()
-        total = 0
 
         self.log.info(
             "Starting esdedupe: {} - duplicate document removal tool".format(__VERSION__))
@@ -95,7 +94,7 @@ class Esdedupe:
             self.log.info("elastic: {}, host: {}, version: {}".format(
                 resp['cluster_name'], args.host, resp['version']['number']))
 
-            docs_hash = {}
+            docs = {}
             dupl = 0
 
             # one or more fields to form a unique key (primary key)
@@ -106,7 +105,7 @@ class Esdedupe:
                 index = args.index
                 # if indexname specifically was set, do not do --all mode
                 args.all = False
-                self.process_index(es, docs_hash, pk, dupl, index, args)
+                self.process_index(es, docs, pk, dupl, index, args)
 
             end = time.time()
             if args.noop:
@@ -121,16 +120,50 @@ class Esdedupe:
                     self.log.info("Total time: {0}".format(
                         timedelta(seconds=(end - start))))
 
-        except Exception as e:
+        except ConnectionError as e:
             self.log.error(e)
 
-    def process_index(self, es, docs_hash, unique_fields, dupl, index, args):
+
+    def process_index(self, es, docs, pk, dupl, index, args):
         if args.window:
-            self.scan_and_remove(
-                es, docs_hash, unique_fields, dupl, index, args)
+            if not args.timestamp:
+                self.log.error("Please specify --timestamp field")
+                sys.exit(1)
+            if not args.since:
+                self.log.error("Please specify --since %Y-%m-%d\"'T'\"%H:%M:%S timepoint")
+                sys.exit(1)
+            if not args.until:
+                self.log.error("Please specify --until %Y-%m-%d\"'T'\"%H:%M:%S timepoint")
+                sys.exit(1)
+
+            win = time_to_sec(args.window)
+            self.log.info("Timestamp based search, with window {} from {} until {}".format(
+                args.window, args.since, args.until))
+
+            start = args.since
+            end = args.until
+
+            currStart = args.since
+            currEnd = args.since + timedelta(seconds=win)
+            # scan & remove using sliding window
+            while currEnd < end:
+                self.log.info("Using window {}, from: {} until: {}".format(
+                    args.window, to_es_date(currStart), to_es_date(currEnd)))
+                args.since = currStart
+                args.until = currEnd
+                self.scan_and_remove(es, docs, pk, dupl, index, args)
+                currStart += timedelta(seconds=win)
+                currEnd += timedelta(seconds=win)
+
+            if currEnd != end:
+                self.log.info("Last check, from: {} until: {}".format(
+                        to_es_date(currStart), to_es_date(end)))
+                args.since = currStart
+                args.until = end
+                self.scan_and_remove(es, docs, pk, dupl, index, args)
         else:
-            self.scan_and_remove(
-                es, docs_hash, unique_fields, dupl, index, args)
+            # "normal" index without timestamps
+            self.scan_and_remove(es, docs, pk, dupl, index, args)
 
     def scan(self, es, docs_hash, unique_fields, index, args):
         i = 0
@@ -177,9 +210,9 @@ class Esdedupe:
         if args.timestamp:
             filter = {"format": "strict_date_optional_time"}
             if args.since:
-                filter['gte'] = args.since
+                filter['gte'] = to_es_date(args.since)
             if args.until:
-                filter['lte'] = args.until
+                filter['lte'] = to_es_date(args.until)
             query = {
                 "query": {
                     "bool": {
