@@ -145,6 +145,7 @@ class Esdedupe:
 
             currStart = args.since
             currEnd = args.since + timedelta(seconds=win)
+            total = 0
             # scan & remove using sliding window
             while currEnd < end:
                 docs = {} # avoid deleting same documents again and again
@@ -152,7 +153,7 @@ class Esdedupe:
                     args.window, to_es_date(currStart), to_es_date(currEnd)))
                 args.since = currStart
                 args.until = currEnd
-                self.scan_and_remove(es, docs, pk, dupl, index, args)
+                total += self.scan_and_remove(es, docs, pk, dupl, index, args)
                 currStart += timedelta(seconds=win)
                 currEnd += timedelta(seconds=win)
 
@@ -161,10 +162,11 @@ class Esdedupe:
                         to_es_date(currStart), to_es_date(end)))
                 args.since = currStart
                 args.until = end
-                self.scan_and_remove(es, docs, pk, dupl, index, args)
+                total += self.scan_and_remove(es, docs, pk, dupl, index, args)
         else:
             # "normal" index without timestamps
-            self.scan_and_remove(es, docs, pk, dupl, index, args)
+            total += self.scan_and_remove(es, docs, pk, dupl, index, args)
+        self.log.info("Altogether {} documents were removed (including doc replicas)".format(total))
 
     def scan(self, es, docs_hash, unique_fields, index, args):
         i = 0
@@ -201,10 +203,11 @@ class Esdedupe:
                     self.print_duplicates(docs_hash, index, es, args)
             else:
                 if args.threads > 1:
-                    self.parallel_delete(docs_hash, index, es, args, dupl)
+                    return self.parallel_delete(docs_hash, index, es, args, dupl)
                 else:
                     # safer option, should avoid overloading elastic
-                    self.sequential_delete(docs_hash, index, es, args, dupl)
+                    return self.sequential_delete(docs_hash, index, es, args, dupl)
+        return 0
 
     def es_query(self, args):
         if args.timestamp:
@@ -270,6 +273,7 @@ class Esdedupe:
 
         self.log.info(
             "Deleted {:0,} documents (including shard replicas)".format(successes))
+        return successes
 
     def parallel_delete(self, docs_hash, index, es, args, duplicates):
         if not args.no_progress:
@@ -288,6 +292,7 @@ class Esdedupe:
 
         self.log.info(
             "Deleted {:0,} documents (including shard replicas)".format(successes))
+        return successes
 
     def delete_iterator(self, docs_hash, index, args):
         for hashval, ids in docs_hash.items():
