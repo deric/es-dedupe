@@ -104,6 +104,9 @@ class ArgumentParser(_Base):
         self.add_argument("-l", "--level", dest="level",
                           default="INFO",
                           help="Python logging level (DEBUG, INFO, WARN, ERROR, CRITICAL)")
+        self.add_argument("--es-level", dest="es_level",
+                          default="INFO",
+                          help="Elasticsearch logging level (DEBUG, INFO, WARN, ERROR, CRITICAL)")
         self.add_argument("--log_dupl", dest="log_dupl",
                           default=None,
                           help="File to store duplicates mapping in JSON format")

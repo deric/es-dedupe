@@ -7,7 +7,7 @@ import string
 import time
 
 import esdedupe
-from logging import DEBUG
+from logging import DEBUG, INFO
 from esdedupe.cli import ArgumentParser
 from esdedupe.cmd import setup_logging
 
@@ -63,8 +63,8 @@ class TestDedupe:
 
         dedupe = esdedupe.Esdedupe()
         parser = ArgumentParser()
-        args = parser.parse_args(['-i', INDEX, '-f name','-T timestamp','-w 5m','-F 2021-01-01T01:01:00', '-U 2021-01-01T01:20:00'])
-        setup_logging(args)
+        args = parser.parse_args(['-i', INDEX, '-f', 'name','-T', 'timestamp','-w 5m','-F 2021-01-01T01:01:00', '-U 2021-01-01T01:20:00'])
+        setup_logging(args, INFO, INFO)
         dedupe.run(args)
 
         i = 0

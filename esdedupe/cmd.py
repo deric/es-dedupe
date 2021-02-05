@@ -17,7 +17,7 @@ from .esdedupe import Esdedupe
 from .cli import ArgumentParser
 
 
-def setup_logging(args, default_log_level=INFO):
+def setup_logging(args, default_log_level=INFO, es_log=WARN):
     fmt = '%(asctime)s [%(thread)d] %(levelname)-5s %(name)s %(message)s'
     formatter = Formatter(fmt=fmt, datefmt='%Y-%m-%dT%H:%M:%S ')
     stream = stdout if args.log_stream_stdout else stderr
@@ -37,7 +37,7 @@ def setup_logging(args, default_log_level=INFO):
     logger.level = DEBUG if args.debug else default_log_level
 
     # elasticsearch scroll output is too verbose
-    getLogger('elasticsearch').level = WARN
+    getLogger('elasticsearch').level = es_log
 
 
 def loglevel(level):
@@ -61,7 +61,7 @@ def main():
         print("esdedupe {}".format(__VERSION__))
         os._exit(0)
 
-    setup_logging(args, loglevel(args.level))
+    setup_logging(args, loglevel(args.level), loglevel(args.es_level))
     try:
         dedupe = Esdedupe()
         dedupe.run(args)
