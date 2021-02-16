@@ -250,7 +250,7 @@ def fetch(idxname, args):
         json = ujson.dumps(payload)
         if args.verbose:
             logme("# idxname {0}: POST {1}".format(idxname, uri))
-            logme("#\tdata: {0}".format(json))
+            logme("#\tquery: {0}".format(json))
         resp = requests.post(uri, data=json, headers=es_headers)
         if args.debug:
             logme("## idxname {0}, resp: {1}".format(idxname, resp.text))
@@ -408,7 +408,7 @@ def fetch_allsettings(args):
             if (tmpblocks != None):
                 if (idxname not in tmpidx2settings):
                     tmpidx2settings[idxname] = copy.copy(tmpblocks)
-                
+
     except requests.exceptions.ConnectionError as e:
         logme("ERROR - connection failed, check --host argument and port. Is ES running on {0}?".format(es_uri(args)))
         logme(e)
@@ -429,7 +429,7 @@ def set_index_writable(args, idxname, flag):
         json = ujson.dumps(payload)
         if args.verbose:
             logme("# idxname {0}: PUT {1}".format(idxname, uri))
-            logme("#\tdata: {0}".format(json))
+            logme("#\tquery: {0}".format(json))
         resp = requests.put(uri, data=json, headers=es_headers)
         r = {}
         if args.debug:
@@ -664,10 +664,10 @@ if (__name__ == "__main__"):
                         default=False,
                         help="Disable check & remove if duplicities found after with standard search query")
     parser.add_argument("--log_agg", dest="log_agg",
-                        default="/tmp/es_dedupe.log",
+                        default="es_dedupe.log",
                         help="Logfile for partially deleted documents (documents found by aggregate queries)")
     parser.add_argument("--log_done", dest="log_done",
-                        default="/tmp/es_dedupe.done",
+                        default="es_dedupe.done",
                         help="Logfile containing all document IDs that remained in ES")
     parser.add_argument("--check_log", dest="check",
                         help="Verify that documents has been deleted")

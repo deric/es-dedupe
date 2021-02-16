@@ -1,0 +1,15 @@
+#!/bin/bash
+set -e
+
+function main {
+cd "$(dirname "$0")/.."
+  local ROOT=$(pwd)
+  local PROJ=esdedupe
+
+  local SOURCES="*.py $PROJ/*.py $PROJ/*/*.py tests/*.py"
+
+  pycodestyle --ignore=E221,E241,E251,E722,E741,W504 $SOURCES
+  flakes8 $SOURCES
+}
+
+main "$@"

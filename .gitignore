@@ -1,2 +1,6 @@
 *.log
-
+__pycache__
+*.pyc
+build/*
+dist/*
+esdedupe.egg-info/*

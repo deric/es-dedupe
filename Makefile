@@ -27,10 +27,13 @@ dev:
 
 # auto correct indentation issues
 fix:
-	autopep8 dedupe.py --recursive --in-place
+	autopep8 esdedupe/ --recursive --in-place
 
 lint:
-	flake8 dedupe.py
+	flake8 esdedupe/
+
+package:
+	python3 setup.py sdist bdist_wheel
 
 test:
 	pytest --pep8 --cov -s
@@ -39,5 +42,6 @@ clean:
 	find . -name '*.pyc' -exec rm --force {} +
 	find . -name '*.pyo' -exec rm --force {} +
 	find . -name '*~' -exec rm --force  {} +
+	rm -rf esdedupe.egg-info dist build
 
-.PHONY: clean test
+.PHONY: clean test build

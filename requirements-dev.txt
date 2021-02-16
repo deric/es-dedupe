@@ -1,3 +1,4 @@
+elasticsearch
 mock
 pytest
 pytest-cov
