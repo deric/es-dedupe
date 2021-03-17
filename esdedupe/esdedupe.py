@@ -23,6 +23,7 @@ class Esdedupe:
 
     def __init__(self):
         self.log = getLogger('esdedupe')
+        self.total = 0
 
     # Process documents returned by the current search/scroll
     def build_index(self, docs_hash, unique_fields, hit):
@@ -145,7 +146,7 @@ class Esdedupe:
 
             currStart = args.since
             currEnd = args.since + timedelta(seconds=win)
-            total = 0
+            self.total = 0
             # scan & remove using sliding window
             while currEnd < end:
                 docs = {} # avoid deleting same documents again and again
@@ -153,7 +154,7 @@ class Esdedupe:
                     args.window, to_es_date(currStart), to_es_date(currEnd)))
                 args.since = currStart
                 args.until = currEnd
-                total += self.scan_and_remove(es, docs, pk, dupl, index, args)
+                self.total += self.scan_and_remove(es, docs, pk, dupl, index, args)
                 currStart += timedelta(seconds=win)
                 currEnd += timedelta(seconds=win)
 
@@ -162,11 +163,11 @@ class Esdedupe:
                         to_es_date(currStart), to_es_date(end)))
                 args.since = currStart
                 args.until = end
-                total += self.scan_and_remove(es, docs, pk, dupl, index, args)
+                self.total += self.scan_and_remove(es, docs, pk, dupl, index, args)
         else:
             # "normal" index without timestamps
-            total += self.scan_and_remove(es, docs, pk, dupl, index, args)
-        self.log.info("Altogether {} documents were removed (including doc replicas)".format(total))
+            self.total += self.scan_and_remove(es, docs, pk, dupl, index, args)
+        self.log.info("Altogether {} documents were removed (including doc replicas)".format(self.total))
 
     def scan(self, es, docs_hash, unique_fields, index, args):
         i = 0
@@ -188,10 +189,10 @@ class Esdedupe:
         if dupl == 0:
             self.log.info("No duplicates found")
         else:
-            total = len(docs_hash)
+            self.total = len(docs_hash)
             self.log.info(
                 "Found {:0,} duplicates out of {:0,} docs, unique documents: {:0,} ({:.1f}% duplicates)".format(
-                    dupl, dupl+total, total, dupl/(dupl+total)*100)
+                    dupl, dupl+self.total, self.total, dupl/(dupl+self.total)*100)
                 )
 
             if args.log_dupl:

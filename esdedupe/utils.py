@@ -7,7 +7,7 @@ import psutil
 import datetime
 
 
-def bytes_fmt(self, num, suffix='B'):
+def bytes_fmt(num, suffix='B'):
     for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
         if abs(num) < 1024.0:
             return "%3.1f%s%s" % (num, unit, suffix)
@@ -15,7 +15,7 @@ def bytes_fmt(self, num, suffix='B'):
     return "%.1f%s%s" % (num, 'Y', suffix)
 
 
-def memusage(self):
+def memusage():
     process = psutil.Process(os.getpid())
     rss = process.memory_info().rss
     return bytes_fmt(rss)
