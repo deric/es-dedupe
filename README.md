@@ -17,6 +17,17 @@ Remove duplicates from index `exact-index-name` while searching for unique `Uuid
 docker run --rm deric/es-dedupe:latest esdedupe -H localhost -P 9200 -i exact-index-name -f Uuid > es_dedupe.log 2>&1
 ```
 
+## Multiple unique fields
+
+Build a local index using ``md5(time,device_id)` as an unique key. It might require a significant amount of memory (depends on the size of your index, it can easily grow to gigabytes - it's stored as a Python dict with a string key, which might occupy a large amount of memory).
+
+
+```bash
+esdedupe --host localhost -field time,device_id -i my_index --noop
+```
+
+
+## Examples
 
 More advanced example with documents containing timestamps.
 
