@@ -1,7 +1,7 @@
 FROM debian:10-slim as builder
 ENV LANG C.UTF-8
 ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update && apt-get install --no-install-recommends -y python3-pip python3-setuptools python3-dev make gcc
+RUN apt-get update -qq && apt-get install --no-install-recommends -y python3-pip python3-setuptools python3-dev make g++
 ADD . /tmp/
 RUN cd /tmp && pip3 install wheel && pip3 install -r /tmp/requirements.txt && python3 setup.py install
 
