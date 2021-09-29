@@ -36,7 +36,8 @@ package:
 	python3 setup.py sdist bdist_wheel
 
 test:
-	pytest --pep8 --cov -s
+	docker build -f Dockerfile.test -t esdedupe-test .
+	docker run -v $(shell pwd):/app --entrypoint /bin/bash -it esdedupe-test
 
 clean:
 	find . -name '*.pyc' -exec rm --force {} +
