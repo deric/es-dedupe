@@ -1,3 +1,7 @@
+ujson
+tqdm
+psutil
+requests
 elasticsearch
 mock
 pytest
