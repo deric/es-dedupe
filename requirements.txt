@@ -1,5 +1,5 @@
 ujson
 tqdm
 psutil
-elasticsearch
+elasticsearch<=7.17.9
 requests

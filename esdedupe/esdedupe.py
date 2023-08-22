@@ -53,7 +53,11 @@ class Esdedupe:
         uri = self.elastic_uri(args)
         try:
             self.log.debug("GET {0}".format(uri))
-            resp = requests.get(uri)
+            if args.user:
+                from requests.auth import HTTPBasicAuth
+                resp = requests.get(uri, auth=HTTPBasicAuth(args.user, args.password))
+            else:
+                resp = requests.get(uri)
             self.log.debug("Response: {0}".format(resp.text))
             if (resp.status_code == 200):
                 return
