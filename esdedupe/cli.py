@@ -129,6 +129,10 @@ class ArgumentParser(_Base):
                           action="store_true", dest="ssl",
                           default=False,
                           help="Use SSL")
+        self.add_argument("-k", "--insecure",
+                          action="store_false", dest="cert_verify",
+                          default=True,
+                          help="Allow connections to es without server certificate verify")
         self.add_argument('--log-stream-stdout', action='store_true',
                           default=False,
                           help='Log to stdout instead of stderr')
