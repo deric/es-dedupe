@@ -1,5 +1,6 @@
 ujson
 tqdm
 psutil
-elasticsearch<=7.17.9
+elasticsearch
 requests
+urllib3>=1.26.2,<2
