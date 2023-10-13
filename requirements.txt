@@ -3,3 +3,4 @@ tqdm
 psutil
 elasticsearch
 requests
+python-benedict
