@@ -1,6 +1,7 @@
 ujson
 tqdm
 psutil
-elasticsearch
+elasticsearch>=8.0.0
 requests
+urllib3>=1.26.2,<2
 python-benedict

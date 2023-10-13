@@ -53,15 +53,27 @@ class Esdedupe:
 
     def ping(self, args):
         uri = self.elastic_uri(args)
+        if not args.cert_verify:
+            requests.urllib3.disable_warnings()
         try:
             self.log.debug("GET {0}".format(uri))
-            resp = requests.get(uri)
+            if args.user:
+                from requests.auth import HTTPBasicAuth
+                resp = requests.get(uri,
+                                    auth=HTTPBasicAuth(args.user, args.password),
+                                    verify=args.cert_verify)
+            else:
+                resp = requests.get(uri,
+                                    verify=args.cert_verify)
             self.log.debug("Response: {0}".format(resp.text))
             if (resp.status_code == 200):
                 return
             else:
                 self.log.error("{0}: {1}".format(uri, resp.text))
                 sys.exit(1)
+        except requests.exceptions.SSLError as e:
+            self.log.error("Certificate verification failed on {0} , use -k  to skip checking the certificate".format(uri))
+            sys.exit(1)
         except requests.exceptions.ConnectionError as e:
             self.log.error(
                 "Connection failed. Is ES running on {0} ?".format(uri))
@@ -73,7 +85,7 @@ class Esdedupe:
 
     def run(self, args):
         start = time.time()
-
+        uri = self.elastic_uri(args)
         self.log.info(
             "Starting esdedupe: {} - duplicate document removal tool".format(__VERSION__))
         if args.noop:
@@ -82,16 +94,14 @@ class Esdedupe:
             # test connection to Elasticsearch cluster first
             self.ping(args)
             if args.user:
-                es = Elasticsearch([args.host],
-                                   port=args.port,
-                                   http_auth=(args.user, args.password),
-                                   use_ssl=args.ssl
-                                   )
+                es = Elasticsearch([uri],
+                                   basic_auth=(args.user, args.password),
+                                   verify_certs=args.cert_verify,
+                                   ssl_show_warn=args.cert_verify)
             else:
-                es = Elasticsearch([args.host],
-                                   port=args.port,
-                                   use_ssl=args.ssl
-                                   )
+                es = Elasticsearch(hosts=[uri],
+                                   verify_certs=args.cert_verify,
+                                   ssl_show_warn=args.cert_verify)
 
             resp = es.info()
             self.log.info("elastic: {}, host: {}, version: {}".format(
