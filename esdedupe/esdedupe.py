@@ -9,6 +9,7 @@ import ujson
 import requests
 import sys
 
+from benedict import benedict
 from elasticsearch import Elasticsearch, helpers
 from elasticsearch.helpers import parallel_bulk
 from elasticsearch.helpers import streaming_bulk
@@ -28,15 +29,16 @@ class Esdedupe:
     # Process documents returned by the current search/scroll
     def build_index(self, docs_hash, unique_fields, hit):
         hashval = None
-        _id = hit["_id"]
+        hit_benedict = benedict(hit)
+        _id = hit_benedict["_id"]
         # there's no need to hash, if we have just single unique key
         if len(unique_fields) > 1:
             combined_key = ""
             for field in unique_fields:
-                combined_key += str(hit['_source'][field])
+                combined_key += str(hit_benedict['_source'][field])
             hashval = hashlib.md5(combined_key.encode('utf-8')).digest()
         else:
-            hashval = str(hit['_source'][unique_fields[0]])
+            hashval = str(hit_benedict['_source'][unique_fields[0]])
 
         docs_hash.setdefault(hashval, []).append(_id)
 
