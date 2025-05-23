@@ -1,9 +1,11 @@
-FROM debian:10-slim as builder
-ENV LANG C.UTF-8
-ENV DEBIAN_FRONTEND noninteractive
-RUN apt-get update -qq && apt-get install --no-install-recommends -y python3-pip python3-setuptools python3-dev make g++\
- && apt-get clean && rm -rf /var/lib/apt/lists/*
-ADD requirements-dev.txt /tmp/
-RUN pip3 install wheel && pip3 install -r /tmp/requirements-dev.txt
-RUN mkdir /app
+FROM debian:12-slim AS builder
+ENV LANG=C.UTF-8
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update -qq && apt-get install --no-install-recommends -y python3-pip python3-venv python3-dev make g++\
+ && python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+ADD requirements* /tmp/
+RUN pip3 install wheel && pip3 install -r /tmp/requirements.txt && pip3 install -r /tmp/requirements-dev.txt
 WORKDIR /app
+ADD . /app/
+RUN python3 setup.py install
