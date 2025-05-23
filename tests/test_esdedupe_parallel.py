@@ -1,7 +1,5 @@
 import pytest
-from pytest import mark
-from pytest import raises
-from elasticsearch import Elasticsearch, helpers
+from elasticsearch import Elasticsearch
 import random
 import string
 import time

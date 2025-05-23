@@ -14,7 +14,7 @@ from elasticsearch import Elasticsearch, helpers
 from elasticsearch.helpers import parallel_bulk
 from elasticsearch.helpers import streaming_bulk
 from logging import getLogger
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from . import __VERSION__
 from .utils import memusage, time_to_sec, to_es_date
@@ -73,11 +73,13 @@ class Esdedupe:
                 sys.exit(1)
         except requests.exceptions.SSLError as e:
             self.log.error("Certificate verification failed on {0} , use -k  to skip checking the certificate".format(uri))
+            self.log.error(e)
             sys.exit(1)
         except requests.exceptions.ConnectionError as e:
             self.log.error(
                 "Connection failed. Is ES running on {0} ?".format(uri))
             self.log.error("Check --host argument and --port")
+            self.log.error(e)
             # do not show this terrible traceback
             # self.log.error(e)
             sys.exit(1)
@@ -153,7 +155,6 @@ class Esdedupe:
             self.log.info("Timestamp based search, with window {} from {} until {}".format(
                 args.window, args.since, args.until))
 
-            start = args.since
             end = args.until
 
             currStart = args.since

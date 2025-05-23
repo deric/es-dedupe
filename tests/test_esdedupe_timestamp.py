@@ -1,13 +1,11 @@
 import pytest
-from pytest import mark
-from pytest import raises
-from elasticsearch import Elasticsearch, helpers
+from elasticsearch import Elasticsearch
 import random
 import string
 import time
 
 import esdedupe
-from logging import DEBUG, INFO
+from logging import INFO
 from esdedupe.cli import ArgumentParser
 from esdedupe.cmd import setup_logging
 
