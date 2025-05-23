@@ -186,7 +186,7 @@ class Esdedupe:
         self.log.info("Building documents mapping on index: {}, batch size: {}".format(
             index, args.batch))
         for hit in helpers.scan(es, index=index, size=args.batch,
-                                query=self.es_query(args), scroll=args.scroll):
+                                query=self.es_query(args), scroll=args.scroll, request_timeout=args.request_timeout):
             self.build_index(docs_hash, unique_fields, hit)
             i += 1
             if (i % args.mem_report == 0):
