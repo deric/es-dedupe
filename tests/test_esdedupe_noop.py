@@ -7,12 +7,13 @@ import time
 import esdedupe
 from esdedupe.cli import ArgumentParser
 
-INDEX = 'test-noop'
+INDEX = "test-noop"
+
 
 def random_string(length):
     # Random string with the combination of lower and upper case
     letters = string.ascii_letters + string.digits
-    return ''.join(random.SystemRandom().choice(letters) for i in range(length))
+    return "".join(random.SystemRandom().choice(letters) for i in range(length))
 
 
 @pytest.fixture()
@@ -35,9 +36,11 @@ def dedupe():
     # cleanup
     es.indices.delete(index=INDEX, ignore=400)
 
+
 def test_es_ping():
     es = Elasticsearch(["localhost"])
     assert es.ping()
+
 
 class TestDedupe:
     def test_docs(self, dedupe):
@@ -46,7 +49,7 @@ class TestDedupe:
         # make sure elastic indexes inserted documents
 
         i = 0
-        while res['count'] < 20:
+        while res["count"] < 20:
             time.sleep(1)
             i += 1
             res = es.count(index=INDEX)
@@ -55,6 +58,10 @@ class TestDedupe:
 
         dedupe = esdedupe.Esdedupe()
         parser = ArgumentParser()
-        dedupe.run(parser.parse_args(['-i', INDEX, '--field', 'name', '--log-stream-stdout', '--noop']))
+        dedupe.run(
+            parser.parse_args(
+                ["-i", INDEX, "--field", "name", "--log-stream-stdout", "--noop"]
+            )
+        )
 
-        assert es.count(index=INDEX)['count'] == 20
+        assert es.count(index=INDEX)["count"] == 20
