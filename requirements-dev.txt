@@ -2,10 +2,10 @@ ujson
 tqdm
 psutil
 requests
-elasticsearch
+elasticsearch~=8.0
 mock
 pytest
 pytest-cov
-pytest-pep8
-autopep8
-flake8
+ruff
+urllib3>=1.26.2,<2
+python-benedict

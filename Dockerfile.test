@@ -5,7 +5,7 @@ RUN apt-get update -qq && apt-get install --no-install-recommends -y python3-pip
  && python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 ADD requirements* /tmp/
-RUN pip3 install wheel && pip3 install -r /tmp/requirements.txt && pip3 install -r /tmp/requirements-dev.txt
+RUN pip3 install wheel && pip3 install -r /tmp/requirements-dev.txt
 WORKDIR /app
 ADD . /app/
 RUN python3 setup.py install

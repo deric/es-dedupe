@@ -27,10 +27,10 @@ dev:
 
 # auto correct indentation issues
 fix:
-	autopep8 esdedupe/ --recursive --in-place
+	ruff check --fix .
 
 lint:
-	flake8 esdedupe/
+	ruff check .
 
 package:
 	python3 setup.py sdist bdist_wheel
